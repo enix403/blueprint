@@ -232,6 +232,7 @@ class RoomAreas:
 
         self.rects_graph.remove_nodes_from(nodes_to_remove)
 
+
 """
 def finalize_plan(pm: PlanMasks):
     # TODO: Handle empty rooms/rects throughout
