@@ -189,15 +189,45 @@ class RoomAreas:
             G.nodes[node]['xywh'] = (x, y, w, h)
 
 
+    def threshold_rectangles(self, min_area_units: int):
+        nodes_to_remove = []
+
+        G = self.rects_graph
+
+        for node in G.nodes:
+            _, _, w, h = G.nodes[node]['xywh']
+
+            area_unit = w * h
+
+            if area_unit < min_area_units:
+                nodes_to_remove.append(node)
+
+        G.remove_nodes_from(nodes_to_remove)
+
+
+
 """
-rooms = []
-for i, node in enumerate(pm.graph.nodes):
-    if not NodeType.is_room(node):
-        continue
+def finalize_plan(pm: PlanMasks):
+    scale_height = 1
+    scale_width = 1
 
-    room = RoomAreas(node, pm.masks[i])
-    rooms.append(room)
+    # (deduced from above scale)
+    min_area_units = 10
 
-# (64, 64, R)
-combined_mask = torch.stack(masks, dim=-1)
+    rooms = []
+    for i, node in enumerate(pm.graph.nodes):
+        if not NodeType.is_room(node):
+            continue
+
+        room = RoomAreas(node, pm.masks[i])
+
+        # scale to user input
+        room.scale_by(scale_height, scale_width)
+
+        # remove short rectangles
+        room.threshold_rectangles(min_area_units)
+        
+        # (more to come)
+        
+        rooms.append(room)
 """
