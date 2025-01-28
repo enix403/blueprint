@@ -165,3 +165,24 @@ class RoomAreas:
             mask[x:x + h, y:y + w] = 1
 
         return mask
+
+
+    def scale_by(self, scale_height: int, scale_width: int):
+        # TODO: make sure everything is int
+        self.grid_height *= scale_height
+        self.grid_width *= scale_width
+
+        G = self.rects_graph
+
+        for node in G.nodes:
+            x, y, w, h = G.nodes[node]['xywh']
+            
+            x *= scale_height
+            h *= scale_height
+
+            y *= scale_width
+            w *= scale_width
+
+            G.nodes[node]['xywh'] = (x, y, w, h)
+
+
