@@ -1,6 +1,7 @@
 import torch
+import networkx as nx
 
-def largest_rectangle_area(heights):
+def _largest_rectangle_area(heights):
     """
     Find the largest rectangle area in a histogram.
     
@@ -32,7 +33,7 @@ def largest_rectangle_area(heights):
     heights.pop()  # Remove the sentinel value
     return max_area, start_idx, max_width
 
-def find_largest_rectangle(grid):
+def _find_largest_rectangle(grid):
     """
     Find the largest rectangle of 1's in a 2D binary grid using the histogram technique.
 
@@ -52,14 +53,14 @@ def find_largest_rectangle(grid):
         for j in range(m):
             heights[j] = heights[j] + 1 if grid[i, j] == 1 else 0
 
-        area, start_col, width = largest_rectangle_area(heights.tolist())
+        area, start_col, width = _largest_rectangle_area(heights.tolist())
         if area > max_area:
             max_area = area
             max_rectangle = (i - area // width + 1, start_col, width, area // width)
 
     return max_rectangle
 
-def split_into_rectangles(grid):
+def _split_into_rectangles(grid):
     """
     Split a binary grid into the smallest set of non-overlapping rectangles.
 
@@ -73,7 +74,7 @@ def split_into_rectangles(grid):
     rectangles = []
 
     while grid.any():
-        x, y, width, height = find_largest_rectangle(grid)
+        x, y, width, height = _find_largest_rectangle(grid)
         rectangles.append((x, y, width, height))
 
         # Set the cells of the found rectangle to 0
@@ -83,41 +84,62 @@ def split_into_rectangles(grid):
 
 # ---------
 
-def reconstruct_mask(room_shape, rects):
-    rec = torch.zeros(room_shape, dtype=torch.uint8)
+def _create_rects_graph(rectangles):
+    """
+    Create a graph where each rectangle is a node, and an edge exists between two nodes if their rectangles touch at boundary.
 
-    for x, y, w, h in rects:
-        rec[x:x + h, y:y + w] = 1
+    Args:
+        rectangles (list[tuple]): List of rectangles represented as (x, y, width, height).
 
-    return rec
+    Returns:
+        networkx.Graph: A graph where nodes are rectangle indices and edges represent adjacency.
+    """
+    def is_adjacent(rect1, rect2):
+        x1, y1, w1, h1 = rect1
+        x2, y2, w2, h2 = rect2
+
+        # Check if they are adjacent horizontally or vertically
+        if x1 + h1 == x2 or x2 + h2 == x1:  # Vertical adjacency
+            return not (y1 + w1 <= y2 or y2 + w2 <= y1)
+        if y1 + w1 == y2 or y2 + w2 == y1:  # Horizontal adjacency
+            return not (x1 + h1 <= x2 or x2 + h2 <= x1)
+        return False
+
+    G = nx.Graph()
+    for i, rect1 in enumerate(rectangles):
+        G.add_node(i, xywh=rect1)
+        for j, rect2 in enumerate(rectangles):
+            if i != j and is_adjacent(rect1, rect2):
+                G.add_edge(i, j)
+
+    return G
 
 # ---------
 
-# public
-def correct_mask(mask):
-    rects = split_into_rectangles(room)    
+class RoomAreas:
 
+    grid_height: int
+    grid_width: int
+    room_type: int
+    rects_graph: nx.Graph
 
-"""
-Psuedo code
+    def __init__(self, room_type: int, mask: torch.tensor):
+        self.grid_height = mask.shape[0]
+        self.grid_width = mask.shape[1]
 
-def CorrectMask(mask):
+        self.room_type = room_type
 
-    # get all the aligned rects of every size
-    rects = GetAllAlignedRects(mask)
-    polys = MergeIntoPolygons(rects)
+        rects = _split_into_rectangles(mask)
+        self.rects_graph = _create_rects_graph(rects)
 
-    sort polygons by area (largest first)
+    def to_mask(self):
+        mask = torch.zeros(
+            (self.grid_height, self.grid_width),
+            dtype=torch.uint8
+        )
 
-    # use the largest polygon and discard the rest
-    mask = CreateMask(polys[0])
-    return mask
+        for i, data in self.rects_graph.nodes(data=True):
+            x, y, w, h = data['xywh']
+            mask[x:x + h, y:y + w] = 1
 
-def CorrectPlan(plan):
-    for mask in plan:
-        mask = CorrectMask(mask)
-
-    # TODO: fill overlaps
-    # TODO: fill holes
-
-"""
+        return mask
