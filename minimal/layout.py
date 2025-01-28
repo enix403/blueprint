@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import torch
 import networkx as nx
+from matplotlib import colors
 
 class NodeType:
     # Node types (rooms/doors) and their IDs from HouseGAN++
@@ -68,6 +69,13 @@ NODE_COLOR = {
     NodeType.UNKNOWN       : "#785A67",
     NodeType.INTERIOR_DOOR : "#D3A2C7",
 }
+
+NODE_COLORMAP = colors.ListedColormap(
+    [
+        NODE_COLOR.get(i, "#FF00FF")
+        for i in range(NodeType.NUM_NODE_TYPES)
+    ]
+)
 # fmt: on
 
 # fmt: off
