@@ -1,6 +1,9 @@
 from typing import Union, Iterable
+
 import copy
 from dataclasses import dataclass
+
+import torch
 import networkx as nx
 
 class NodeType:
@@ -104,6 +107,19 @@ class LayoutGraph:
     ):
         self.nodes = list(nodes)
         self.edges = set(edges)
+
+    def state_dict(self):
+        return {
+            "nodes": torch.tensor(list(self.nodes), dtype=torch.uint8),
+            "edges": torch.tensor(list(self.edges), dtype=torch.uint8),
+        }
+
+    def load_state_dict(self, state):
+        nodes = state["nodes"]
+        edges = state["edges"]
+
+        self.nodes = nodes.tolist()
+        self.edges = set(map(tuple, edges.tolist()))
 
     def clone(self):
         return LayoutGraph(

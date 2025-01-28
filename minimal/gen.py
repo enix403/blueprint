@@ -117,6 +117,22 @@ class PlanMasks:
     masks: torch.tensor
     graph: LayoutGraph
 
+    @classmethod
+    def create_from_state(cls, state):
+        masks = state["masks"]
+        graph_dict = state["graph_dict"]
+
+        graph = LayoutGraph([], [])
+        graph.load_state_dict(graph_dict)
+
+        return cls(masks, graph)
+
+    def state_dict(self):
+        return {
+            "masks": self.masks,
+            "graph_dict": self.graph.state_dict(),
+        }
+
     def render(self, img_size=256):
         return draw_plan(self.masks, self.graph.nodes, img_size)
 
@@ -125,7 +141,6 @@ class PlanMasks:
             display(self.render())
 
         return f"<PlanMasks {id(self)}>"
-
 
 def generate_plan(
     graph: LayoutGraph,
@@ -139,7 +154,8 @@ def generate_plan(
         num_iters (int): Number of refinement iterations.
 
     Returns:
-        torch.Tensor: Final predicted masks of shape (R, 64, 64) (wrapped in a `PlanMasks`)
+        torch.Tensor(dtype=torch.byte): Final predicted masks of
+        shape (R, 64, 64) (wrapped in a `PlanMasks`)
     """
     nodes = graph.nodes
     edges = graph.edges
@@ -163,5 +179,8 @@ def generate_plan(
         masks = _predict_masks(
             nodes_enc, edges_enc, prev_masks=masks, idx_fixed=idx_fixed
         )
+
+    # Threshold masks at 0 and convert to binary 0/1
+    masks = (masks > 0).byte()
 
     return PlanMasks(masks, graph)
