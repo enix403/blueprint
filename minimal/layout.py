@@ -88,17 +88,13 @@ NODE_NAME = {
 # fmt: on
 
 class LayoutGraph:
+    # List of node type IDs.
     nodes: list[int]
-    """
-    List of node type IDs.
-    """
 
+    # List of undirected edges between nodes. Each edge tuple contains index into
+    # the `nodes` list i.e the tuple (a, b) in this list tells
+    # that node[a] is a neighbour of node[b]
     edges: set[tuple[int, int]]
-    """
-    List of undirected edges between nodes. Each edge tuple contains index into
-    the `nodes` list i.e the tuple (a, b) in this list tells
-    that node[a] is a neighbour of node[b]
-    """
 
     def __init__(
         self,

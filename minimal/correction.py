@@ -114,16 +114,32 @@ def _create_rects_graph(rectangles):
 
     return G
 
-# ---------
 
 class RoomAreas:
+    """
+    A class to represent the area of rooms as a graph of axis aligned rectangles.
+    """
 
+    # Height of the grid
     grid_height: int
+
+    # Width of the grid
     grid_width: int
+
+    # Type of this room node
     room_type: int
+
+    # Graph of rectangles
     rects_graph: nx.Graph
 
     def __init__(self, room_type: int, mask: torch.tensor):
+        """
+        Build a RoomAreas instance.
+
+        Args:
+            room_type (int): Type of this room node
+            mask (torch.Tensor): A binary grid (n x m) where 1 represents the room area.
+        """
         self.grid_height = mask.shape[0]
         self.grid_width = mask.shape[1]
 
@@ -133,6 +149,12 @@ class RoomAreas:
         self.rects_graph = _create_rects_graph(rects)
 
     def to_mask(self):
+        """
+        Convert the rectangles stored in the graph back into a binary mask.
+
+        Returns:
+            torch.Tensor: A binary grid (n x m) reconstructed from the rectangles.
+        """
         mask = torch.zeros(
             (self.grid_height, self.grid_width),
             dtype=torch.uint8
