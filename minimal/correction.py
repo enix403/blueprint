@@ -261,7 +261,7 @@ def finalize_plan(pm: PlanMasks):
         # Only keep the largest connected component (by
         # commulative area)
         room.discard_small_components()
-        
+
         # (more to come)
         
         rooms.append(room)
