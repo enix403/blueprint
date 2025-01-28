@@ -183,4 +183,28 @@ def generate_plan(
     # Threshold masks at 0 and convert to binary 0/1
     masks = (masks > 0).byte()
 
+    # remove overlap. modifies the `masks` in-place
+    remove_overlap(graph.nodes, masks)
+
     return PlanMasks(masks, graph)
+
+
+def remove_overlap(nodes: list[int], masks: torch.tensor):
+    rooms = [
+        (i, node)
+        for i, node in enumerate(nodes)
+        if NodeType.is_room(node)
+    ]
+
+    # sort from least important to most important
+    rooms.sort(key=lambda room: room[1], reverse=True)
+
+    taken_mask = torch.zeros_like(masks[0])
+
+    for (i, _) in rooms:
+        # clear room's mask based on taken_mask
+        masks[i] = torch.logical_and(masks[i], torch.logical_not(taken_mask))
+
+        # update taken_mask from room's mask
+        taken_mask = torch.logical_or(taken_mask, masks[i])
+

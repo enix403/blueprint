@@ -1,6 +1,9 @@
 import torch
 import networkx as nx
 
+from minimal.layout import NodeType
+from minimal.gen import PlanMasks
+
 def _largest_rectangle_area(heights):
     """
     Find the largest rectangle area in a histogram.
@@ -186,3 +189,15 @@ class RoomAreas:
             G.nodes[node]['xywh'] = (x, y, w, h)
 
 
+"""
+rooms = []
+for i, node in enumerate(pm.graph.nodes):
+    if not NodeType.is_room(node):
+        continue
+
+    room = RoomAreas(node, pm.masks[i])
+    rooms.append(room)
+
+# (64, 64, R)
+combined_mask = torch.stack(masks, dim=-1)
+"""
