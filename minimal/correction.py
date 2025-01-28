@@ -189,6 +189,10 @@ class RoomAreas:
             G.nodes[node]['xywh'] = (x, y, w, h)
 
 
+    def _area_of(self, node: int):
+        _, _, w, h = self.rects_graph.nodes[node]['xywh']
+        return w * h
+
     def threshold_rectangles(self, min_area_units: int):
         nodes_to_remove = []
 
@@ -197,17 +201,41 @@ class RoomAreas:
         for node in G.nodes:
             _, _, w, h = G.nodes[node]['xywh']
 
-            area_unit = w * h
-
-            if area_unit < min_area_units:
+            if w * h < min_area_units:
                 nodes_to_remove.append(node)
 
         G.remove_nodes_from(nodes_to_remove)
 
 
+    def discard_small_components(self):
+        # find the largest connected components 
+
+        comps = list(nx.connected_components(self.rects_graph))
+
+        max_comp_i = -1
+        max_area = 0
+
+        for i, nodes in enumerate(comps):
+            total_area = sum(map(self._area_of, nodes))
+
+            if max_comp_i == -1 or total_area > max_area:
+                max_area = total_area
+                max_comp_i = i
+
+        # remove others nodes from smaller components
+
+        nodes_to_remove = []
+
+        for i, nodes in enumerate(comps):
+            if i != max_comp_i:
+                nodes_to_remove.extend(nodes)
+
+        self.rects_graph.remove_nodes_from(nodes_to_remove)
 
 """
 def finalize_plan(pm: PlanMasks):
+    # TODO: Handle empty rooms/rects throughout
+
     scale_height = 1
     scale_width = 1
 
@@ -225,7 +253,14 @@ def finalize_plan(pm: PlanMasks):
         room.scale_by(scale_height, scale_width)
 
         # remove short rectangles
+        # TODO: maybe keep rectangles with degree >= 2 as they
+        #       will prove to be a "pathway" between multiple
+        #       (potentially) disconnected rooms 
         room.threshold_rectangles(min_area_units)
+        
+        # Only keep the largest connected component (by
+        # commulative area)
+        room.discard_small_components()
         
         # (more to come)
         
