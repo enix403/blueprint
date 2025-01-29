@@ -6,6 +6,10 @@ walls need to know which rect/room they belong to
 make sure extra "joined" bits of walls are properly
     connected to representation
 
+what about parallel displaced walls? like this
+    ----|
+        ----
+
 """
 
 ftl = torch.tensor([
@@ -39,6 +43,11 @@ fbl = torch.tensor([
     [0,  0,  0,  0,  0],
     [0,  0,  0,  0,  0],
 ], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+
+
+# ----------------------
+
+# ----------------------
 
 def detect_unjoined_corners(grid):
     initial = grid
