@@ -7,7 +7,7 @@ make sure extra "joined" bits of walls are properly
     connected to representation
 
 what about parallel displaced walls? like this
-    ----|
+    ----
         ----
 
 """
@@ -47,33 +47,65 @@ fbl = torch.tensor([
 
 # ----------------------
 
+fp1 = torch.tensor([
+    [0,  0,  0,  0,  0],
+    [0,  0,  0,  0,  0],
+    [2,  2, -1,  0,  0],
+    [0, -1,  2,  2,  0],
+    [0,  0,  0,  0,  0],
+], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+
+fp2 = torch.tensor([
+    [0, 0,  0,  0,  0],
+    [0, 2,  2, -1,  0],
+    [0, 0, -1,  2,  2],
+    [0, 0,  0,  0,  0],
+    [0, 0,  0,  0,  0],
+], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+
+fp3 = torch.tensor([
+    [0,  0,  0,  0,  0],
+    [0,  0,  0,  2,  0],
+    [0,  0, -1,  2,  0],
+    [0,  0,  2, -1,  0],
+    [0,  0,  2,  0,  0],
+], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+
+fp4 = torch.tensor([
+    [0,  0,  2,  0,  0],
+    [0, -1,  2,  0,  0],
+    [0,  2, -1,  0,  0],
+    [0,  2,  0,  0,  0],
+    [0,  0,  0,  0,  0],
+], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+
 # ----------------------
 
-def detect_unjoined_corners(grid):
-    initial = grid
+def detect_unjoined_corners(walls, inner_mask):
+    initial = walls
 
-    grid = grid.to(torch.int8).unsqueeze(0).unsqueeze(0)
-    grid = grid.clone()
+    walls = walls.to(torch.int8).unsqueeze(0).unsqueeze(0)
+    walls = walls.clone()
 
     for kernel in [ftl, ftr, fbr, fbl]:
-        res = F.conv2d(grid, kernel, padding=2)
+        res = F.conv2d(walls, kernel, padding=2)
         res = (res == 8).byte()
         
-        grid += res
-        grid.clamp_max_(1)
+        walls += res
+        walls.clamp_max_(1)
 
-    for kernel in [ftl, ftr, fbr, fbl]:
-        kernel = kernel.clone()
+    p_walls = torch.zeros_like(initial).unsqueeze(0).unsqueeze(0)
 
-        kernel[0, :] = 0
-        kernel[-1, :] = 0
-        kernel[:, 0] = 0
-        kernel[:, -1] = 0
+    for kernel in [fp1, fp2, fp3, fp4]:
+        res = F.conv2d(walls, kernel, padding=2)
+        res = (res == 8).byte()
 
-        res = F.conv2d(grid, kernel, padding=2)
-        res = (res == 4).byte()
-        
-        grid += res
-        grid.clamp_max_(1)
+        p_walls += res
+        p_walls.clamp_max_(1)
 
-    return grid.squeeze() - initial
+    p_walls = torch.logical_and(p_walls, inner_mask)
+
+    walls += p_walls
+    walls.clamp_max_(1)
+
+    return walls.squeeze() - initial
