@@ -1,3 +1,6 @@
+from typing import List, Tuple
+from dataclasses import dataclass
+
 import torch
 import torch.nn.functional as F
 
@@ -39,7 +42,7 @@ def walls_between(room_mask, check_room_mask):
 
 def intersect_rooms(rooms: list[RoomAreas]):
 
-    # TODO: which 
+    # TODO: need a better metric then total_area
     rooms = sorted(rooms, key=lambda r: r.total_area(), reverse=True)
     masks = [room.to_mask() for room in rooms]
 
@@ -57,13 +60,11 @@ def intersect_rooms(rooms: list[RoomAreas]):
     outer_mask = (1 - inner_mask).byte()
     outer_walls = walls_between(inner_mask, outer_mask)
 
-    return inner_mask, inner_walls, outer_mask, outer_walls
+    walls_mask = (inner_walls + outer_walls).clamp_max_(1)
 
+    return inner_mask, walls_mask
 
-def intersect_rooms_2():
-    pass
-
-# -------------------------------
+# -----------------
 
 ftl = torch.tensor([
     [0,  0,  0,  0,  0],
@@ -184,6 +185,7 @@ def conv_mask(mask, kernel, threshold_match = None):
 
     return result
 
+
 def join_wall_corners(walls_mask, inner_mask):
     initial = walls_mask
 
@@ -209,11 +211,9 @@ def join_wall_corners(walls_mask, inner_mask):
 
 
 def find_walls(rooms: list[RoomAreas]):
-    inner_mask, inner_walls, outer_mask, outer_walls = intersect_rooms(rooms)
+    inner_mask, walls_mask = intersect_rooms(rooms)
 
-    walls_mask = (inner_walls + outer_walls).clamp_max_(1)
     walls_mask = join_wall_corners(walls_mask, inner_mask)
-
     walls_mask.clamp_max_(1)
 
     return walls_mask
