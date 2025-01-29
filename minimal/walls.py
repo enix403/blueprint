@@ -115,13 +115,31 @@ fp2 = torch.tensor([
 
 fp3 = torch.tensor([
     [0,  0,  0,  0,  0],
+    [0,  0,  0,  0,  0],
+    [0,  0, -1,  2,  2],
+    [0,  2,  2, -1,  0],
+    [0,  0,  0,  0,  0],
+], dtype=torch.int8)
+
+fp4 = torch.tensor([
+    [0,  0,  0,  0,  0],
+    [0, -1,  2,  2,  0],
+    [2,  2, -1,  0,  0],
+    [0,  0,  0,  0,  0],
+    [0,  0,  0,  0,  0],
+], dtype=torch.int8)
+
+
+
+fp5 = torch.tensor([
+    [0,  0,  0,  0,  0],
     [0,  0,  0,  2,  0],
     [0,  0, -1,  2,  0],
     [0,  0,  2, -1,  0],
     [0,  0,  2,  0,  0],
 ], dtype=torch.int8)
 
-fp4 = torch.tensor([
+fp6 = torch.tensor([
     [0,  0,  2,  0,  0],
     [0, -1,  2,  0,  0],
     [0,  2, -1,  0,  0],
@@ -129,10 +147,25 @@ fp4 = torch.tensor([
     [0,  0,  0,  0,  0],
 ], dtype=torch.int8)
 
+fp7 = torch.tensor([
+    [0,  0,  2,  0,  0],
+    [0,  0,  2, -1,  0],
+    [0,  0, -1,  2,  0],
+    [0,  0,  0,  2,  0],
+    [0,  0,  0,  0,  0],
+], dtype=torch.int8)
+
+fp8 = torch.tensor([
+    [0,  0,  0,  0,  0],
+    [0,  2,  0,  0,  0],
+    [0,  2, -1,  0,  0],
+    [0, -1,  2,  0,  0],
+    [0,  0,  2,  0,  0],
+], dtype=torch.int8)
 
 # ----------------------
 
-def conv_mask(mask, kernel):
+def conv_mask(mask, kernel, threshold_match = None):
     mask = mask.to(torch.int8).unsqueeze(0).unsqueeze(0)
     # kernel is assumed to be in int8
     kernel = kernel.unsqueeze(0).unsqueeze(0)
@@ -141,27 +174,43 @@ def conv_mask(mask, kernel):
     padding = (f - 1) // 2
 
     result = F.conv2d(mask, kernel, padding=padding)
+    result = result[0, 0, :, :]
 
-    return result[0, 0, :, :]
+    if threshold_match is not None:
+        result = (result == 8).byte()
 
-def detect_unjoined_corners(walls_mask, inner_mask):
+    return result
+
+def join_wall_corners(walls_mask, inner_mask):
     initial = walls_mask
 
     walls_mask = walls_mask.clone()
 
     for kernel in [ftl, ftr, fbr, fbl]:
-        res = conv_mask(walls_mask, kernel)
-        res = (res == 8).byte()
+        res = conv_mask(walls_mask, kernel, 8)
         walls_mask += res
         walls_mask.clamp_max_(1)
 
-    # p_walls = torch.zeros_like(initial).unsqueeze(0).unsqueeze(0)
+    p_walls = torch.zeros_like(initial)
 
-    # for kernel in [fp1, fp2, fp3, fp4]:
-    #     res = F.conv2d(walls, kernel, padding=2)
-    #     res = (res == 8).byte()
+    for kernel in [fp1, fp2, fp3, fp4, fp5, fp6, fp7, fp8]:
+        res = res = conv_mask(walls_mask, kernel, 8)
+        p_walls += res
+        p_walls.clamp_max_(1)
 
-    #     p_walls += res
-    #     p_walls.clamp_max_(1)
+    p_walls = torch.logical_and(p_walls, inner_mask)
 
-    return walls_mask - initial
+    walls_mask += p_walls
+
+    return walls_mask
+
+
+def find_walls(rooms: list[RoomAreas]):
+    inner_mask, inner_walls, outer_mask, outer_walls = intersect_rooms(rooms)
+
+    walls_mask = (inner_walls + outer_walls).clamp_max_(1)
+    walls_mask = join_wall_corners(walls_mask, inner_mask)
+
+    walls_mask.clamp_max_(1)
+
+    return walls_mask
