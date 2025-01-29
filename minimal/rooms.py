@@ -238,6 +238,11 @@ class RoomAreas:
         self.rects_graph.remove_nodes_from(nodes_to_remove)
 
 
+    def iter_rects(self):
+        for node in self.rects_graph.nodes:
+            yield self.rects_graph.nodes[node]['xywh']
+
+
 def extract_rooms(pm: PlanMasks):
     # TODO: Handle empty rooms/rects throughout
 
@@ -264,3 +269,31 @@ def extract_rooms(pm: PlanMasks):
         rooms.append(room)
 
     return rooms
+
+
+# fmt: off
+BOUNDARY_TOP    = 0b0001
+BOUNDARY_RIGHT  = 0b0010
+BOUNDARY_BOTTOM = 0b0100
+BOUNDARY_LEFT   = 0b1000
+# fmt: on
+
+def mask_rect_boundary(rect, out_mask):
+    x, y, w, h = rect
+
+    out_mask[x, y:y + w] += BOUNDARY_TOP
+    out_mask[x:x + h, y + w] += BOUNDARY_RIGHT
+    out_mask[x + h, y:y + w] += BOUNDARY_BOTTOM
+    out_mask[x:x + h, y] += BOUNDARY_LEFT
+
+
+def create_orientation_mask(rooms, walls_mask):
+    orient_mask = torch.zeros_like(walls_mask)
+
+    for room in rooms:
+        for rect in room.iter_rects():
+            mask_rect_boundary(rect, orient_mask)
+
+    # orient_mask *= walls_mask
+
+    return orient_mask

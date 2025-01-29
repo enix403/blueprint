@@ -216,4 +216,5 @@ def find_walls(rooms: list[RoomAreas]):
     walls_mask = join_wall_corners(walls_mask, inner_mask)
     walls_mask.clamp_max_(1)
 
-    return walls_mask
+    return walls_mask, inner_mask
+
