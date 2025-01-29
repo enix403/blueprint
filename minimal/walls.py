@@ -8,7 +8,6 @@ make sure extra "joined" bits of walls are properly
 
 """
 
-# def apply_corner_filter(grid, filter):
 
 ftl = torch.tensor([
     [0,  0,  0,  0,  0],
