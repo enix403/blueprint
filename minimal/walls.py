@@ -8,7 +8,6 @@ make sure extra "joined" bits of walls are properly
 
 """
 
-
 ftl = torch.tensor([
     [0,  0,  0,  0,  0],
     [0,  0,  0,  0,  0],
@@ -42,15 +41,30 @@ fbl = torch.tensor([
 ], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
 
 def detect_unjoined_corners(grid):
-    edges = torch.zeros_like(grid)
+    initial = grid
 
     grid = grid.to(torch.int8).unsqueeze(0).unsqueeze(0)
+    grid = grid.clone()
 
     for kernel in [ftl, ftr, fbr, fbl]:
         res = F.conv2d(grid, kernel, padding=2)
         res = (res == 8).byte()
-        res = res.squeeze()
+        
+        grid += res
+        grid.clamp_max_(1)
 
-        edges += res
+    for kernel in [ftl, ftr, fbr, fbl]:
+        kernel = kernel.clone()
 
-    return edges.clamp_max_(0)
+        kernel[0, :] = 0
+        kernel[-1, :] = 0
+        kernel[:, 0] = 0
+        kernel[:, -1] = 0
+
+        res = F.conv2d(grid, kernel, padding=2)
+        res = (res == 4).byte()
+        
+        grid += res
+        grid.clamp_max_(1)
+
+    return grid.squeeze() - initial
