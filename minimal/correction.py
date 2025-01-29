@@ -193,6 +193,11 @@ class RoomAreas:
         _, _, w, h = self.rects_graph.nodes[node]['xywh']
         return w * h
 
+
+    def total_area(self):
+        return sum(map(self._area_of, self.rects_graph.nodes))
+        
+
     def threshold_rectangles(self, min_area_units: int):
         nodes_to_remove = []
 

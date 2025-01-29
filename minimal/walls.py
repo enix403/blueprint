@@ -1,16 +1,66 @@
-"""
+import torch
+import torch.nn.functional as F
 
-walls can be added at low res and scaled as needed
-walls need to keep orientation
-walls need to know which rect/room they belong to
-make sure extra "joined" bits of walls are properly
-    connected to representation
+from minimal.correction import RoomAreas
 
-what about parallel displaced walls? like this
-    ----
-        ----
+def _shift_up(m):
+    """Shifts a 2D mask `m` up"""
+    top, rest = m[:1, :], m[1:, :]
+    return torch.cat([rest, top], dim=0)
 
-"""
+def _shift_down(m):
+    """Shifts a 2D mask `m` down"""
+    rest, bottom = m[:-1, :], m[-1:, :]
+    return torch.cat([bottom, rest], dim=0)
+
+def _shift_left(m):
+    """Shifts a 2D mask `m` left"""
+    first, rest = m[:, :1], m[:, 1:]
+    return torch.cat([rest, first], dim=1)
+
+def _shift_right(m):
+    """Shifts a 2D mask `m` down"""
+    rest, last = m[:, :-1], m[:, -1:]
+    return torch.cat([last, rest], dim=1)
+
+
+def walls_between(room_mask, check_room_mask):
+    a = room_mask
+    b = check_room_mask
+
+    e_top = _shift_down((_shift_up(a) + b == 2).byte())
+    e_bottom = _shift_up((_shift_down(a) + b == 2).byte())
+
+    e_left = _shift_right((_shift_left(a) + b == 2).byte())
+    e_right = _shift_left((_shift_right(a) + b == 2).byte())
+
+    return (e_top + e_right + e_left + e_bottom).clamp_max_(1)
+
+
+def intersect_rooms(rooms: list[RoomAreas]):
+
+    rooms = sorted(rooms, key=lambda r: r.total_area(), reverse=True)
+    masks = [room.to_mask() for room in rooms]
+
+    inner_mask = torch.zeros_like(masks[0])
+    inner_walls = torch.zeros_like(masks[0])
+
+    for i in range(len(masks)):
+        inner_mask += masks[i]
+        for j in range(i + 1, len(masks)):
+            inner_walls += walls_between(masks[i], masks[j])
+
+    inner_mask.clamp_max_(1)
+    inner_walls.clamp_max_(1)
+
+    outer_mask = (1 - inner_mask).byte()
+    outer_walls = walls_between(inner_mask, outer_mask)
+
+    return inner_mask, inner_walls, outer_mask, outer_walls
+
+    # 
+
+# -------------------------------
 
 ftl = torch.tensor([
     [0,  0,  0,  0,  0],
@@ -18,7 +68,7 @@ ftl = torch.tensor([
     [0,  0, -1,  2,  2],
     [0,  0,  2, -1,  0],
     [0,  0,  2,  0,  0],
-], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+], dtype=torch.int8)
 
 ftr = torch.tensor([
     [0,  0,  0,  0,  0],
@@ -26,7 +76,7 @@ ftr = torch.tensor([
     [2,  2, -1,  0,  0],
     [0, -1,  2,  0,  0],
     [0,  0,  2,  0,  0],
-], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+], dtype=torch.int8)
 
 fbr = torch.tensor([
     [0,  0,  2,  0,  0],
@@ -34,7 +84,7 @@ fbr = torch.tensor([
     [2,  2, -1,  0,  0],
     [0,  0,  0,  0,  0],
     [0,  0,  0,  0,  0],
-], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+], dtype=torch.int8)
 
 fbl = torch.tensor([
     [0,  0,  2,  0,  0],
@@ -42,7 +92,7 @@ fbl = torch.tensor([
     [0,  0, -1,  2,  2],
     [0,  0,  0,  0,  0],
     [0,  0,  0,  0,  0],
-], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+], dtype=torch.int8)
 
 
 # ----------------------
@@ -53,7 +103,7 @@ fp1 = torch.tensor([
     [2,  2, -1,  0,  0],
     [0, -1,  2,  2,  0],
     [0,  0,  0,  0,  0],
-], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+], dtype=torch.int8)
 
 fp2 = torch.tensor([
     [0, 0,  0,  0,  0],
@@ -61,7 +111,7 @@ fp2 = torch.tensor([
     [0, 0, -1,  2,  2],
     [0, 0,  0,  0,  0],
     [0, 0,  0,  0,  0],
-], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+], dtype=torch.int8)
 
 fp3 = torch.tensor([
     [0,  0,  0,  0,  0],
@@ -69,7 +119,7 @@ fp3 = torch.tensor([
     [0,  0, -1,  2,  0],
     [0,  0,  2, -1,  0],
     [0,  0,  2,  0,  0],
-], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+], dtype=torch.int8)
 
 fp4 = torch.tensor([
     [0,  0,  2,  0,  0],
@@ -77,35 +127,41 @@ fp4 = torch.tensor([
     [0,  2, -1,  0,  0],
     [0,  2,  0,  0,  0],
     [0,  0,  0,  0,  0],
-], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+], dtype=torch.int8)
+
 
 # ----------------------
 
-def detect_unjoined_corners(walls, inner_mask):
-    initial = walls
+def conv_mask(mask, kernel):
+    mask = mask.to(torch.int8).unsqueeze(0).unsqueeze(0)
+    # kernel is assumed to be in int8
+    kernel = kernel.unsqueeze(0).unsqueeze(0)
 
-    walls = walls.to(torch.int8).unsqueeze(0).unsqueeze(0)
-    walls = walls.clone()
+    f = kernel.shape[-1]
+    padding = (f - 1) // 2
+
+    result = F.conv2d(mask, kernel, padding=padding)
+
+    return result[0, 0, :, :]
+
+def detect_unjoined_corners(walls_mask, inner_mask):
+    initial = walls_mask
+
+    walls_mask = walls_mask.clone()
 
     for kernel in [ftl, ftr, fbr, fbl]:
-        res = F.conv2d(walls, kernel, padding=2)
+        res = conv_mask(walls_mask, kernel)
         res = (res == 8).byte()
-        
-        walls += res
-        walls.clamp_max_(1)
+        walls_mask += res
+        walls_mask.clamp_max_(1)
 
-    p_walls = torch.zeros_like(initial).unsqueeze(0).unsqueeze(0)
+    # p_walls = torch.zeros_like(initial).unsqueeze(0).unsqueeze(0)
 
-    for kernel in [fp1, fp2, fp3, fp4]:
-        res = F.conv2d(walls, kernel, padding=2)
-        res = (res == 8).byte()
+    # for kernel in [fp1, fp2, fp3, fp4]:
+    #     res = F.conv2d(walls, kernel, padding=2)
+    #     res = (res == 8).byte()
 
-        p_walls += res
-        p_walls.clamp_max_(1)
+    #     p_walls += res
+    #     p_walls.clamp_max_(1)
 
-    p_walls = torch.logical_and(p_walls, inner_mask)
-
-    walls += p_walls
-    walls.clamp_max_(1)
-
-    return walls.squeeze() - initial
+    return walls_mask - initial
