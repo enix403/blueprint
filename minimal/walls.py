@@ -41,3 +41,17 @@ fbl = torch.tensor([
     [0,  0,  0,  0,  0],
     [0,  0,  0,  0,  0],
 ], dtype=torch.int8).unsqueeze(0).unsqueeze(0)
+
+def detect_unjoined_corners(grid):
+    edges = torch.zeros_like(grid)
+
+    grid = grid.to(torch.int8).unsqueeze(0).unsqueeze(0)
+
+    for kernel in [ftl, ftr, fbr, fbl]:
+        res = F.conv2d(grid, kernel, padding=2)
+        res = (res == 8).byte()
+        res = res.squeeze()
+
+        edges += res
+
+    return edges.clamp_max_(0)
