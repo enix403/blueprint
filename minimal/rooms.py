@@ -238,14 +238,10 @@ class RoomAreas:
         self.rects_graph.remove_nodes_from(nodes_to_remove)
 
 
-"""
-def finalize_plan(pm: PlanMasks):
+def extract_rooms(pm: PlanMasks):
     # TODO: Handle empty rooms/rects throughout
 
-    scale_height = 1
-    scale_width = 1
-
-    # (deduced from above scale)
+    # TODO: take input
     min_area_units = 10
 
     rooms = []
@@ -255,20 +251,16 @@ def finalize_plan(pm: PlanMasks):
 
         room = RoomAreas(node, pm.masks[i])
 
-        # scale to user input
-        room.scale_by(scale_height, scale_width)
-
         # remove short rectangles
         # TODO: maybe keep rectangles with degree >= 2 as they
         #       will prove to be a "pathway" between multiple
         #       (potentially) disconnected rooms 
         room.threshold_rectangles(min_area_units)
-        
+
         # Only keep the largest connected component (by
         # commulative area)
         room.discard_small_components()
 
-        # (more to come)
-        
         rooms.append(room)
-"""
+
+    return rooms

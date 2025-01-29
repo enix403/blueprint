@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from minimal.correction import RoomAreas
+from minimal.rooms import RoomAreas
 
 def _shift_up(m):
     """Shifts a 2D mask `m` up"""
@@ -39,6 +39,7 @@ def walls_between(room_mask, check_room_mask):
 
 def intersect_rooms(rooms: list[RoomAreas]):
 
+    # TODO: which 
     rooms = sorted(rooms, key=lambda r: r.total_area(), reverse=True)
     masks = [room.to_mask() for room in rooms]
 
@@ -58,7 +59,9 @@ def intersect_rooms(rooms: list[RoomAreas]):
 
     return inner_mask, inner_walls, outer_mask, outer_walls
 
-    # 
+
+def intersect_rooms_2():
+    pass
 
 # -------------------------------
 
