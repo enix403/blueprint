@@ -153,11 +153,8 @@ def join_wall_corners(walls_mask, orient_mask, inner_mask):
         res = _conv_mask(walls_mask, kernel, 4)
         p_walls.add_(res).clamp_max_(1)
 
-    # p_walls = torch.logical_and(p_walls, inner_mask)
     p_walls *= inner_mask
 
-    # walls_mask += p_walls
-    # walls_mask.clamp_max_(1)
     walls_mask.add_(p_walls).clamp_max_(1)
 
     # --------------------
@@ -184,4 +181,10 @@ def join_wall_corners(walls_mask, orient_mask, inner_mask):
     return walls_mask, orient_mask + corners_orient_mask
 
 
+# =========================
 
+def extract_walls(rooms: list[RoomAreas]):
+    walls_mask, orient_mask, inner_mask = intersect_rooms(rooms)
+    walls_mask, orient_mask = join_wall_corners(walls_mask, orient_mask, inner_mask)
+
+    return walls_mask, orient_mask

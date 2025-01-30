@@ -36,6 +36,7 @@ def _largest_rectangle_area(heights):
     heights.pop()  # Remove the sentinel value
     return max_area, start_idx, max_width
 
+
 def _find_largest_rectangle(grid):
     """
     Find the largest rectangle of 1's in a 2D binary grid using the histogram technique.
@@ -62,6 +63,7 @@ def _find_largest_rectangle(grid):
             max_rectangle = (i - area // width + 1, start_col, width, area // width)
 
     return max_rectangle
+
 
 def _split_into_rectangles(grid):
     """
@@ -169,23 +171,24 @@ class RoomAreas:
 
         return mask
 
-    def scale_by(self, scale_height: int, scale_width: int):
-        # TODO: make sure everything is int
-        self.grid_height *= scale_height
-        self.grid_width *= scale_width
 
-        G = self.rects_graph
+    # def scale_by(self, scale_height: int, scale_width: int):
+    #     # TODO: make sure everything is int
+    #     self.grid_height *= scale_height
+    #     self.grid_width *= scale_width
 
-        for node in G.nodes:
-            x, y, w, h = G.nodes[node]['xywh']
+    #     G = self.rects_graph
+
+    #     for node in G.nodes:
+    #         x, y, w, h = G.nodes[node]['xywh']
             
-            x *= scale_height
-            h *= scale_height
+    #         x *= scale_height
+    #         h *= scale_height
 
-            y *= scale_width
-            w *= scale_width
+    #         y *= scale_width
+    #         w *= scale_width
 
-            G.nodes[node]['xywh'] = (x, y, w, h)
+    #         G.nodes[node]['xywh'] = (x, y, w, h)
 
 
     def _area_of(self, node: int):
