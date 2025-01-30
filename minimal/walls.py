@@ -120,13 +120,16 @@ kerns_l_corners = [
     torch.flip(_l_corners, (0, 1)), # T + L
 ]
 
-orientations_l_corners = [
-    # do not change order
-    BOUNDARY_RIGHT + BOUNDARY_BOTTOM,
-    BOUNDARY_TOP + BOUNDARY_RIGHT,
-    BOUNDARY_BOTTOM + BOUNDARY_LEFT,
-    BOUNDARY_TOP + BOUNDARY_LEFT,
-]
+# orientations_l_corners = [
+#     # do not change order
+#     BOUNDARY_RIGHT + BOUNDARY_BOTTOM,
+#     BOUNDARY_TOP + BOUNDARY_RIGHT,
+#     BOUNDARY_BOTTOM + BOUNDARY_LEFT,
+#     BOUNDARY_TOP + BOUNDARY_LEFT,
+# ]
+
+BOUNDARY_VERTICAL = BOUNDARY_TOP + BOUNDARY_BOTTOM
+BOUNDARY_HORIZONTAL = BOUNDARY_LEFT + BOUNDARY_RIGHT
 
 # extra/duplicated corners
 _dup_corners = torch.tensor([
@@ -172,13 +175,25 @@ def join_wall_corners(walls_mask, orient_mask, inner_mask):
 
     corners_orient_mask = torch.zeros_like(orient_mask)
 
-    for kern, ort in zip(kerns_l_corners, orientations_l_corners):
-        cur_corners = _conv_mask(initial, kern, 4) * corners
-        corners_orient_mask[torch.where(cur_corners == 1)] = ort
+    # for kern, ort in zip(kerns_l_corners, orientations_l_corners):
+    #     cur_corners = _conv_mask(initial, kern, 4) * corners
+    #     corners_orient_mask[torch.where(cur_corners == 1)] = ort
+
+    BH = BOUNDARY_HORIZONTAL
+    BV = BOUNDARY_VERTICAL
+
+    for x, y in zip(*torch.where(corners == 1)):
+        # TODO: check bounds
+
+        ort_h = max(orient_mask[x-1, y] & BH, orient_mask[x+1, y] & BH)
+        ort_v = max(orient_mask[x, y-1] & BV, orient_mask[x, y+1] & BV)
+
+        corners_orient_mask[x, y] = ort_h + ort_v
 
     # --------------------
 
-    return walls_mask, orient_mask + corners_orient_mask
+    # return walls_mask, orient_mask + corners_orient_mask
+    return walls_mask - corners, orient_mask
 
 
 # =========================
