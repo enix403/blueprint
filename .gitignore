@@ -1,0 +1,10 @@
+.ipynb_checkpoints
+dump
+
+*.pth
+*.png
+*.npy
+*.pyc
+*cache*
+*.txt
+*.jpg
