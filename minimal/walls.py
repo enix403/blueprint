@@ -130,15 +130,19 @@ def join_wall_corners(walls_mask, inner_mask):
         extra_walls += res
         extra_walls.clamp_max_(1)
 
+    walls_mask.clamp_max_(1)
+    
     walls_mask -= extra_walls
 
-    return walls_mask
+    corners = walls_mask - initial
+
+    return walls_mask, corners
 
 
 def find_walls(rooms: list[RoomAreas]):
     walls_mask, orient_mask, inner_mask = intersect_rooms(rooms)
 
-    walls_mask = join_wall_corners(walls_mask, inner_mask)
+    walls_mask, corners = join_wall_corners(walls_mask, inner_mask)
     walls_mask.clamp_max_(1)
 
     return walls_mask, inner_mask
