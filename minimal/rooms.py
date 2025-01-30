@@ -169,30 +169,6 @@ class RoomAreas:
 
         return mask
 
-    def to_boundary_mask(self):
-        mask = torch.zeros(
-            (self.grid_height, self.grid_width),
-            dtype=torch.uint8
-        )
-
-        for i, data in self.rects_graph.nodes(data=True):
-            x, y, w, h = data['xywh']
-            mask[x:x + h, y:y + w] = 1
-
-            x += 1
-            y += 1
-
-            w -= 2
-            h -= 2
-
-            if w <= 0 or h <= 0:
-                continue
-
-            mask[x:x + h, y:y + w] = 0
-
-        return mask
-
-
     def scale_by(self, scale_height: int, scale_width: int):
         # TODO: make sure everything is int
         self.grid_height *= scale_height
@@ -292,56 +268,3 @@ def extract_rooms(pm: PlanMasks):
         rooms.append(room)
 
     return rooms
-
-
-# fmt: off
-BOUNDARY_TOP    = 0b0001
-BOUNDARY_RIGHT  = 0b0010
-BOUNDARY_BOTTOM = 0b0100
-BOUNDARY_LEFT   = 0b1000
-# fmt: on
-
-
-def mask_rect_boundary(rect, out_mask, walls_mask):
-    x, y, w, h = rect
-
-    tl = (x, y)
-    tr = (x, y + w - 1)
-    br = (x + h - 1, y + w - 1)
-    bl = (x + h - 1, y)
-
-    line_mask = torch.zeros_like(out_mask)
-
-    def line(p0, p1, val):
-        x0, y0 = p0
-        x1, y1 = p1
-
-        line_mask.zero_()
-        line_mask[x0:x1+1, y0:y1+1] = val
-
-        # line_mask.multiply_(walls_mask)
-
-        # TODO: Haven't been able to prove that it will
-        #       always work
-        num_wall_cells = torch.sum(line_mask > 0).item()
-
-        if num_wall_cells > 1:
-            out_mask.add_(line_mask)
-
-    line(tl, tr, BOUNDARY_TOP)
-    line(tr, br, BOUNDARY_RIGHT)
-    line(bl, br, BOUNDARY_BOTTOM)
-    line(tl, bl, BOUNDARY_LEFT)
-
-def create_orientation_mask(rooms, walls_mask):
-    orient_mask = torch.zeros_like(walls_mask)
-
-    for room in rooms:
-        for rect in room.iter_rects():
-            mask_rect_boundary(
-                rect,
-                orient_mask,
-                walls_mask
-            )
-
-    return orient_mask

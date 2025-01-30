@@ -6,8 +6,6 @@ import torch.nn.functional as F
 
 from minimal.rooms import RoomAreas
 
-from minimal.wall_corners import all_kerns1, all_kerns2
-
 def _shift_up(m):
     """Shifts a 2D mask `m` up"""
     top, rest = m[:1, :], m[1:, :]
@@ -108,42 +106,82 @@ def intersect_rooms(rooms: list[RoomAreas]):
 
 # -----------------
 
-def join_wall_corners(walls_mask, inner_mask):
-    initial = walls_mask
+# L-shaped disonnected corners
+_l_corners = torch.tensor([
+    [-1,  2,  0],
+    [ 2, -1,  0],
+    [ 0,  0,  0]
+], dtype=torch.int8)
 
+kerns_l_corners = [
+    _l_corners, # R + B
+    torch.flip(_l_corners, (0,)), # T + R
+    torch.flip(_l_corners, (1,)), # B + L
+    torch.flip(_l_corners, (0, 1)), # T + L
+]
+
+orientations_l_corners = [
+    # do not change order
+    BOUNDARY_RIGHT + BOUNDARY_BOTTOM,
+    BOUNDARY_TOP + BOUNDARY_RIGHT,
+    BOUNDARY_BOTTOM + BOUNDARY_LEFT,
+    BOUNDARY_TOP + BOUNDARY_LEFT,
+]
+
+# extra/duplicated corners
+_dup_corners = torch.tensor([
+    [ 2,  0,  0],
+    [ 2,  2,  0],
+    [ 2,  2,  2]
+], dtype=torch.int8)
+
+kerns_dup_corners = [
+    _dup_corners,
+    torch.flip(_dup_corners, (0,)),
+    torch.flip(_dup_corners, (1,)),
+    torch.flip(_dup_corners, (0, 1)),
+]
+
+def join_wall_corners(walls_mask, orient_mask, inner_mask):
+    initial = walls_mask
     walls_mask = walls_mask.clone()
 
+    # --------------------
+
     p_walls = torch.zeros_like(initial)
-
-    for kernel in all_kerns1:
+    for kernel in kerns_l_corners:
         res = _conv_mask(walls_mask, kernel, 4)
-        p_walls += res
-        p_walls.clamp_max_(1)
+        p_walls.add_(res).clamp_max_(1)
 
-    p_walls = torch.logical_and(p_walls, inner_mask)
-    walls_mask += p_walls
+    # p_walls = torch.logical_and(p_walls, inner_mask)
+    p_walls *= inner_mask
+
+    # walls_mask += p_walls
+    # walls_mask.clamp_max_(1)
+    walls_mask.add_(p_walls).clamp_max_(1)
+
+    # --------------------
 
     extra_walls = torch.zeros_like(initial)
-
-    for kernel in all_kerns2:
+    for kernel in kerns_dup_corners:
         res = _conv_mask(walls_mask, kernel, 12)
-        extra_walls += res
-        extra_walls.clamp_max_(1)
+        extra_walls.add_(res).clamp_max_(1)
 
-    walls_mask.clamp_max_(1)
-    
     walls_mask -= extra_walls
+
+    # --------------------
 
     corners = walls_mask - initial
 
-    return walls_mask, corners
+    corners_orient_mask = torch.zeros_like(orient_mask)
+
+    for kern, ort in zip(kerns_l_corners, orientations_l_corners):
+        cur_corners = _conv_mask(initial, kern, 4) * corners
+        corners_orient_mask[torch.where(cur_corners == 1)] = ort
+
+    # --------------------
+
+    return walls_mask, orient_mask + corners_orient_mask
 
 
-def find_walls(rooms: list[RoomAreas]):
-    walls_mask, orient_mask, inner_mask = intersect_rooms(rooms)
-
-    walls_mask, corners = join_wall_corners(walls_mask, inner_mask)
-    walls_mask.clamp_max_(1)
-
-    return walls_mask, inner_mask
 
