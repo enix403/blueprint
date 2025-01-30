@@ -6,6 +6,8 @@ import torch.nn.functional as F
 
 from minimal.rooms import RoomAreas
 
+from minimal.wall_corners import all_kerns1, all_kerns2
+
 def _shift_up(m):
     """Shifts a 2D mask `m` up"""
     top, rest = m[:1, :], m[1:, :]
@@ -66,109 +68,6 @@ def intersect_rooms(rooms: list[RoomAreas]):
 
 # -----------------
 
-ftl = torch.tensor([
-    [0,  0,  0,  0,  0],
-    [0,  0,  0,  0,  0],
-    [0,  0, -1,  2,  2],
-    [0,  0,  2, -1,  0],
-    [0,  0,  2,  0,  0],
-], dtype=torch.int8)
-
-ftr = torch.tensor([
-    [0,  0,  0,  0,  0],
-    [0,  0,  0,  0,  0],
-    [2,  2, -1,  0,  0],
-    [0, -1,  2,  0,  0],
-    [0,  0,  2,  0,  0],
-], dtype=torch.int8)
-
-fbr = torch.tensor([
-    [0,  0,  2,  0,  0],
-    [0, -1,  2,  0,  0],
-    [2,  2, -1,  0,  0],
-    [0,  0,  0,  0,  0],
-    [0,  0,  0,  0,  0],
-], dtype=torch.int8)
-
-fbl = torch.tensor([
-    [0,  0,  2,  0,  0],
-    [0,  0,  2, -1,  0],
-    [0,  0, -1,  2,  2],
-    [0,  0,  0,  0,  0],
-    [0,  0,  0,  0,  0],
-], dtype=torch.int8)
-
-
-# ----------------------
-
-fp1 = torch.tensor([
-    [0,  0,  0,  0,  0],
-    [0,  0,  0,  0,  0],
-    [2,  2, -1,  0,  0],
-    [0, -1,  2,  2,  0],
-    [0,  0,  0,  0,  0],
-], dtype=torch.int8)
-
-fp2 = torch.tensor([
-    [0, 0,  0,  0,  0],
-    [0, 2,  2, -1,  0],
-    [0, 0, -1,  2,  2],
-    [0, 0,  0,  0,  0],
-    [0, 0,  0,  0,  0],
-], dtype=torch.int8)
-
-fp3 = torch.tensor([
-    [0,  0,  0,  0,  0],
-    [0,  0,  0,  0,  0],
-    [0,  0, -1,  2,  2],
-    [0,  2,  2, -1,  0],
-    [0,  0,  0,  0,  0],
-], dtype=torch.int8)
-
-fp4 = torch.tensor([
-    [0,  0,  0,  0,  0],
-    [0, -1,  2,  2,  0],
-    [2,  2, -1,  0,  0],
-    [0,  0,  0,  0,  0],
-    [0,  0,  0,  0,  0],
-], dtype=torch.int8)
-
-
-
-fp5 = torch.tensor([
-    [0,  0,  0,  0,  0],
-    [0,  0,  0,  2,  0],
-    [0,  0, -1,  2,  0],
-    [0,  0,  2, -1,  0],
-    [0,  0,  2,  0,  0],
-], dtype=torch.int8)
-
-fp6 = torch.tensor([
-    [0,  0,  2,  0,  0],
-    [0, -1,  2,  0,  0],
-    [0,  2, -1,  0,  0],
-    [0,  2,  0,  0,  0],
-    [0,  0,  0,  0,  0],
-], dtype=torch.int8)
-
-fp7 = torch.tensor([
-    [0,  0,  2,  0,  0],
-    [0,  0,  2, -1,  0],
-    [0,  0, -1,  2,  0],
-    [0,  0,  0,  2,  0],
-    [0,  0,  0,  0,  0],
-], dtype=torch.int8)
-
-fp8 = torch.tensor([
-    [0,  0,  0,  0,  0],
-    [0,  2,  0,  0,  0],
-    [0,  2, -1,  0,  0],
-    [0, -1,  2,  0,  0],
-    [0,  0,  2,  0,  0],
-], dtype=torch.int8)
-
-# ----------------------
-
 def conv_mask(mask, kernel, threshold_match = None):
     mask = mask.to(torch.int8).unsqueeze(0).unsqueeze(0)
     # kernel is assumed to be in int8
@@ -181,7 +80,7 @@ def conv_mask(mask, kernel, threshold_match = None):
     result = result[0, 0, :, :]
 
     if threshold_match is not None:
-        result = (result == 8).byte()
+        result = (result == threshold_match).byte()
 
     return result
 
@@ -191,21 +90,24 @@ def join_wall_corners(walls_mask, inner_mask):
 
     walls_mask = walls_mask.clone()
 
-    for kernel in [ftl, ftr, fbr, fbl]:
-        res = conv_mask(walls_mask, kernel, 8)
-        walls_mask += res
-        walls_mask.clamp_max_(1)
-
     p_walls = torch.zeros_like(initial)
 
-    for kernel in [fp1, fp2, fp3, fp4, fp5, fp6, fp7, fp8]:
-        res = res = conv_mask(walls_mask, kernel, 8)
+    for kernel in all_kerns1:
+        res = conv_mask(walls_mask, kernel, 4)
         p_walls += res
         p_walls.clamp_max_(1)
 
     p_walls = torch.logical_and(p_walls, inner_mask)
-
     walls_mask += p_walls
+
+    extra_walls = torch.zeros_like(initial)
+
+    for kernel in all_kerns2:
+        res = conv_mask(walls_mask, kernel, 12)
+        extra_walls += res
+        extra_walls.clamp_max_(1)
+
+    walls_mask -= extra_walls
 
     return walls_mask
 

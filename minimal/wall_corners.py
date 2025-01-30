@@ -1,15 +1,32 @@
-df = torch.tensor([
-    [2, -1],
-    [-1, 2],
+import torch
+
+
+kern1 = torch.tensor([
+    [-1,  2,  0],
+    [ 2, -1,  0],
+    [ 0,  0,  0]
 ], dtype=torch.int8)
 
+all_kerns1 = [
+    kern1,
+    torch.flip(kern1, (0,)),
+    torch.flip(kern1, (1,)),
+    torch.flip(kern1, (0, 1)),
+]
 
-kern1 = torch.zeros((5, 5), dtype=torch.int8)
-kern2 = torch.zeros((5, 5), dtype=torch.int8)
+# =====================
 
-kern1[1:3,2:4] = df
-kern2[2:4,1:3] = df
+kern2 = torch.tensor([
+    [ 2,  0,  0],
+    [ 2,  2,  0],
+    [ 2,  2,  2]
+], dtype=torch.int8)
 
-print(kern1)
-print()
-print(kern2)
+all_kerns2 = [
+    kern2,
+    torch.flip(kern2, (0,)),
+    torch.flip(kern2, (1,)),
+    torch.flip(kern2, (0, 1)),
+]
+
+# =====================
