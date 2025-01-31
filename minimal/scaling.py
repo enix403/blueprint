@@ -127,7 +127,7 @@ _all_confs = {
 }
 
 def create_cell_mask(conf, shape):
-    out = torch.zeros(shape)
+    out = torch.zeros(shape, dtype=torch.uint8)
 
     if   conf == c1: out[ 0,  0] = 1
     elif conf == c2: out[ 0, -1] = 1

@@ -1,3 +1,5 @@
+import random
+
 import torch
 import networkx as nx
 
@@ -151,6 +153,12 @@ class RoomAreas:
         self.room_type = room_type
 
         rects = _split_into_rectangles(mask)
+
+        # for i in range(len(rects)):
+        #     if bool(random.getrandbits(1)):
+        #         x, y, w, h = rects[i]
+        #         rects[i] = (x, y, w, h)
+
         self.rects_graph = _create_rects_graph(rects)
 
     def to_mask(self):
