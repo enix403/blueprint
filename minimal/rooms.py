@@ -157,7 +157,7 @@ class RoomAreas:
         # for i in range(len(rects)):
         #     if bool(random.getrandbits(1)):
         #         x, y, w, h = rects[i]
-        #         rects[i] = (x, y, w, h)
+        #         rects[i] = (x, y, 1, 1)
 
         self.rects_graph = _create_rects_graph(rects)
 
