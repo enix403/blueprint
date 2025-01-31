@@ -85,29 +85,6 @@ def scale_sep_mask(
 
 # -----------------------------------
 
-"""
-len_x, len_y = room_mask.shape
-
-sep_mask = torch.zeros(room_mask.shape, dtype=torch.uint8)
-
-for x in range(len_x):
-    for y in range(len_y):
-        cell_room = room_mask[x, y]
-
-        for dx, dy, bit in _dirs:
-            nx = x + dx
-            ny = y + dy
-
-            if nx < 0 or nx >= len_x or ny < 0 or ny >= len_y:
-                continue
-
-            n_room = room_mask[nx, ny]
-
-            if cell_room > n_room:
-                sep_mask[x, y] += bit
-
-return sep_mask
-"""
 
 def _conv_mask(mask, kernel, threshold_match = None):
     mask = mask.to(torch.int8).unsqueeze(0).unsqueeze(0)
@@ -147,3 +124,34 @@ def create_sep_mask_fast(room_mask: torch.tensor):
     return sep_mask
 
 
+def scale_sep_mask_fast(mask: torch.Tensor, scale_x: int, scale_y: int) -> torch.Tensor:
+    len_x, len_y = mask.shape
+    new_x, new_y = len_x * scale_x, len_y * scale_y
+
+    # Create the expanded mask (replicates each value into a (scale_x, scale_y) block)
+    mask_expanded = mask.repeat_interleave(scale_x, dim=0).repeat_interleave(scale_y, dim=1)
+
+    # Create index grids for the expanded space
+    x_idx = torch.arange(new_x).view(-1, 1).expand(new_x, new_y)
+    y_idx = torch.arange(new_y).view(1, -1).expand(new_x, new_y)
+
+    # Define boolean masks for each region of the expanded cell
+    top_row = (x_idx % scale_x) == 0
+    bottom_row = (x_idx % scale_x) == (scale_x - 1)
+    left_col = (y_idx % scale_y) == 0
+    right_col = (y_idx % scale_y) == (scale_y - 1)
+
+    # Initialize the scaled mask
+    scaled_mask = torch.zeros((new_x, new_y), dtype=torch.uint8)
+
+    # Apply bitwise operations using the expanded mask
+    scaled_mask[top_row & left_col] |= mask_expanded[top_row & left_col] & CC_TL  # Top-left
+    scaled_mask[top_row & right_col] |= mask_expanded[top_row & right_col] & CC_TR  # Top-right
+    scaled_mask[bottom_row & right_col] |= mask_expanded[bottom_row & right_col] & CC_BR  # Bottom-right
+    scaled_mask[bottom_row & left_col] |= mask_expanded[bottom_row & left_col] & CC_BL  # Bottom-left
+    scaled_mask[top_row] |= mask_expanded[top_row] & CC_T  # Top edge
+    scaled_mask[right_col] |= mask_expanded[right_col] & CC_R  # Right edge
+    scaled_mask[bottom_row] |= mask_expanded[bottom_row] & CC_B  # Bottom edge
+    scaled_mask[left_col] |= mask_expanded[left_col] & CC_L  # Left edge
+
+    return scaled_mask
