@@ -145,6 +145,13 @@ kerns_dup_corners = [
     torch.flip(_dup_corners, (0, 1)),
 ]
 
+def NTB(val):
+    if val == BOUNDARY_TOP: return "T"
+    if val == BOUNDARY_RIGHT: return "R"
+    if val == BOUNDARY_BOTTOM: return "B"
+    if val == BOUNDARY_LEFT: return "L"
+    return "/"
+
 def join_wall_corners(walls_mask, orient_mask, inner_mask):
     initial = walls_mask
     walls_mask = walls_mask.clone()
@@ -174,26 +181,11 @@ def join_wall_corners(walls_mask, orient_mask, inner_mask):
     corners = walls_mask - initial
 
     corners_orient_mask = torch.zeros_like(orient_mask)
-
-    # for kern, ort in zip(kerns_l_corners, orientations_l_corners):
-    #     cur_corners = _conv_mask(initial, kern, 4) * corners
-    #     corners_orient_mask[torch.where(cur_corners == 1)] = ort
-
-    BH = BOUNDARY_HORIZONTAL
-    BV = BOUNDARY_VERTICAL
-
-    for x, y in zip(*torch.where(corners == 1)):
-        # TODO: check bounds
-
-        ort_h = max(orient_mask[x-1, y] & BH, orient_mask[x+1, y] & BH)
-        ort_v = max(orient_mask[x, y-1] & BV, orient_mask[x, y+1] & BV)
-
-        corners_orient_mask[x, y] = ort_h + ort_v
+    corners_orient_mask[torch.where(corners == 1)] = 16
 
     # --------------------
 
-    # return walls_mask, orient_mask + corners_orient_mask
-    return walls_mask - corners, orient_mask
+    return walls_mask, orient_mask + corners_orient_mask
 
 
 # =========================
