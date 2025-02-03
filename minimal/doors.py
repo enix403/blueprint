@@ -47,22 +47,43 @@ def extract_face_walls(sep_mask):
     return [up_walls, right_walls, down_walls, left_walls]
 
 
-# def candidate_walls(
-#     face_walls,
-#     room_mask,
-#     ra, rb
-# ):
-#     if ra < rb:
-#         ra, rb = rb, ra
+def candidate_wall_runs(
+    face_walls,
+    room_masks,
+    ra, rb
+):
+    # Keep ra > rb
+    if ra < rb:
+        ra, rb = rb, ra
+        
+    all_runs = []
+    
+    for i, fw in enumerate(face_walls):
+        ws = fw.clone()
+        ws[room_masks != ra] = 0
+        ws = restrict_touching(room_masks, ws, ra, rb)
+        lx, ly = torch.where(ws > 0)
+    
+        if len(lx) == 0:
+            continue
+    
+        transpose = (i == 0 or i == 3)
+        orient = 'h' if transpose else 'v'
+    
+        if transpose:
+            lx, ly = ly, lx
+    
+        runs = extract_walls_runs(lx, ly)
+    
+        if transpose:
+            all_runs.extend(
+                (y, x, len)
+                for (x, y, len) in runs
+            )
+        else:
+            all_runs.extend(
+                (x, y, len, orient)
+                for (x, y, len) in runs
+            )
 
-#     for i, fw in enumerate(face_walls):
-#         ws = fw.clone()
-#         ws[room_mask != ra] = 0
-#         ws = restrict_touching(room_mask, ws, ra, rb)
-
-#         loc_x, loc_y = torch.where(ws > 0)
-
-
-"""
-
-"""
+    return all_runs
