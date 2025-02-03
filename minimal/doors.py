@@ -1,14 +1,8 @@
 import torch
 
 from minimal.walls import (
-    CC_TL,
-    CC_TR,
-    CC_BR,
-    CC_BL,
-    CC_T,
-    CC_R,
-    CC_B,
-    CC_L
+    CC_TL, CC_TR, CC_BR, CC_BL,
+    CC_T,  CC_R,  CC_B,  CC_L
 )
 
 from minimal.walls import _conv_mask
@@ -46,6 +40,58 @@ def extract_face_walls(sep_mask):
 
     return [up_walls, right_walls, down_walls, left_walls]
 
+# --------------------
+
+_res_kernel = torch.tensor([
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+], dtype=torch.int8)
+
+# Keep walls that connect room ra to rb only and none else
+def _restrict_touching(room_mask, ra_walls, ra, rb):
+    room_mask = room_mask + 1
+    ra = ra + 1
+    rb = rb + 1
+    
+    room_mask[room_mask == ra] = 0
+    room_mask[room_mask == rb] = 0
+
+    restricted = (_conv_mask(room_mask, _res_kernel) == 0).byte()
+    restricted[ra_walls == 0] = 0
+
+    return restricted
+
+# --------------------
+
+def _extract_walls_runs(lx, ly, min_len: int=4):
+    
+    lx, idx = torch.sort(lx)
+    ly = ly[idx]
+    
+    runs = []
+
+    prev_x = lx[0]
+    prev_y = ly[0]
+    cur_len = 1
+
+    for x, y in zip(lx[1:], ly[1:]):
+        if x - prev_x != 1 or y != prev_y:
+            if cur_len >= min_len:
+                runs.append((1 + prev_x.item() - cur_len, prev_y.item(), cur_len))
+            cur_len = 1
+        else:
+            cur_len += 1
+
+        prev_x = x
+        prev_y = y
+
+    if cur_len >= min_len:
+        runs.append((1 + prev_x.item() - cur_len, prev_y.item(), cur_len))
+
+    return runs
+
+# --------------------
 
 def candidate_wall_runs(
     face_walls,
@@ -57,11 +103,10 @@ def candidate_wall_runs(
         ra, rb = rb, ra
         
     all_runs = []
-    
+
     for i, fw in enumerate(face_walls):
-        ws = fw.clone()
-        ws[room_masks != ra] = 0
-        ws = restrict_touching(room_masks, ws, ra, rb)
+        ws = (fw * (room_masks == ra)).byte()
+        ws = _restrict_touching(room_masks, ws, ra, rb)
         lx, ly = torch.where(ws > 0)
     
         if len(lx) == 0:
@@ -73,11 +118,11 @@ def candidate_wall_runs(
         if transpose:
             lx, ly = ly, lx
     
-        runs = extract_walls_runs(lx, ly)
-    
+        runs = _extract_walls_runs(lx, ly)
+
         if transpose:
             all_runs.extend(
-                (y, x, len)
+                (y, x, len, orient)
                 for (x, y, len) in runs
             )
         else:
