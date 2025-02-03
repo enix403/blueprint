@@ -279,3 +279,9 @@ def extract_rooms(pm: PlanMasks):
         rooms.append(room)
 
     return rooms
+
+
+def scale_room_mask(room_mask, scale_x, scale_y):
+    return room_mask \
+        .repeat_interleave(scale_x, dim=0) \
+        .repeat_interleave(scale_y, dim=1)
