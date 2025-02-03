@@ -49,16 +49,18 @@ _res_kernel = torch.tensor([
 ], dtype=torch.int8)
 
 # Keep walls that connect room ra to rb only and none else
-def _restrict_touching(room_mask, ra_walls, ra, rb):
+def _restrict_touching(
+    inv_room_mask,
+    room_mask,
+    ra_walls,
+    ra, rb
+):
     room_mask = room_mask + 1
-    ra = ra + 1
-    rb = rb + 1
-    
-    room_mask[room_mask == ra] = 0
-    room_mask[room_mask == rb] = 0
+    room_mask *= inv_room_mask[ra - 1]
+    room_mask *= inv_room_mask[rb - 1]
 
     restricted = (_conv_mask(room_mask, _res_kernel) == 0).byte()
-    restricted[ra_walls == 0] = 0
+    restricted *= ra_walls
 
     return restricted
 
@@ -95,18 +97,22 @@ def _extract_walls_runs(lx, ly, min_len: int=4):
 
 def candidate_wall_runs(
     face_walls,
-    room_masks,
-    ra, rb
+    room_mask,
+    inv_room_mask,
+    ra, rb,
 ):
+
     # Keep ra > rb
     if ra < rb:
         ra, rb = rb, ra
         
     all_runs = []
 
+    ra_mask = (room_mask == ra)
+
     for i, fw in enumerate(face_walls):
-        ws = (fw * (room_masks == ra)).byte()
-        ws = _restrict_touching(room_masks, ws, ra, rb)
+        ws = (fw * ra_mask).byte()
+        ws = _restrict_touching(inv_room_mask, room_mask, ws, ra, rb)
         lx, ly = torch.where(ws > 0)
     
         if len(lx) == 0:
