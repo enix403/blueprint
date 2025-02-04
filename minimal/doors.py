@@ -1,7 +1,9 @@
+import random
+
 import torch
 from scipy.cluster.hierarchy import DisjointSet
 
-from minimal.rooms import RoomAreas
+from minimal.rooms import RoomAreas, create_inv_room_mask
 from minimal.walls import (
     CC_TL, CC_TR, CC_BR, CC_BL,
     CC_T,  CC_R,  CC_B,  CC_L
@@ -241,3 +243,41 @@ def select_rooms_to_join(rooms, input_graph):
         R,
         available_edges, target_edges
     ))
+
+# ------
+
+WALL_LEN = 4
+
+def _use_run(run):
+    x, y, l, orient = run
+
+    max_push = l - WALL_LEN
+
+    push = random.randint(0, max_push)
+
+    if orient == 'v':
+        x += push
+    else:
+        y += push
+
+    return (x, y, WALL_LEN, orient)
+
+
+def create_doors(
+    R,
+    rooms_to_join,
+    room_mask,
+    sep_mask,
+):
+    inv_room_mask = create_inv_room_mask(room_mask, R)
+    face_walls = extract_face_walls(sep_mask)
+
+    for ra, rb in rooms_to_join:
+        cruns = candidate_wall_runs(face_walls, room_mask, inv_room_mask, ra, rb)
+        if len(cruns) == 0:
+            continue
+
+        # print(cruns)
+        run = cruns[0]
+        run = _use_run(run)
+        print(run)
