@@ -272,6 +272,8 @@ def create_doors(
     inv_room_mask = create_inv_room_mask(room_mask, R)
     face_walls = extract_face_walls(sep_mask)
 
+    doors = []
+
     for ra, rb in rooms_to_join:
         cruns = candidate_wall_runs(face_walls, room_mask, inv_room_mask, ra, rb)
         if len(cruns) == 0:
@@ -280,4 +282,6 @@ def create_doors(
         # print(cruns)
         run = cruns[0]
         run = _use_run(run)
-        print(run)
+        doors.append(run)
+
+    return doors

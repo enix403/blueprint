@@ -32,7 +32,6 @@ def draw_plan(
 
     return plan_img.resize((img_size, img_size), Image.Resampling.BOX)
 
-
 def blit_rooms(
     rooms: list,
     sep_mask=None,
