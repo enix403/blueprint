@@ -136,10 +136,18 @@ class RoomAreas:
     # Type of this room node
     room_type: int
 
+    # Index of this room node in the input layout graph
+    room_node_index: int
+
     # Graph of rectangles
     rects_graph: nx.Graph
 
-    def __init__(self, room_type: int, mask: torch.tensor):
+    def __init__(
+        self,
+        room_type: int,
+        room_node_index: int,
+        mask: torch.tensor,
+    ):
         """
         Build a RoomAreas instance.
 
@@ -151,6 +159,7 @@ class RoomAreas:
         self.grid_width = mask.shape[1]
 
         self.room_type = room_type
+        self.room_node_index = room_node_index
 
         rects = _split_into_rectangles(mask)
 
@@ -264,7 +273,7 @@ def extract_rooms(pm: PlanMasks):
         if not NodeType.is_room(node):
             continue
 
-        room = RoomAreas(node, pm.masks[i])
+        room = RoomAreas(node, i, pm.masks[i])
 
         # remove short rectangles
         # TODO: maybe keep rectangles with degree >= 2 as they

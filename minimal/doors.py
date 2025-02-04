@@ -1,5 +1,6 @@
 import torch
 
+from minimal.rooms import RoomAreas
 from minimal.walls import (
     CC_TL, CC_TR, CC_BR, CC_BL,
     CC_T,  CC_R,  CC_B,  CC_L
@@ -95,6 +96,7 @@ def _extract_walls_runs(lx, ly, min_len: int=4):
 
 # --------------------
 
+# ra and rb are 1-based indexes of the room
 def candidate_wall_runs(
     face_walls,
     room_mask,
@@ -138,3 +140,66 @@ def candidate_wall_runs(
             )
 
     return all_runs
+
+
+# ---------------------
+
+def _are_rects_adjacent(rect1, rect2):
+    x1, y1, w1, h1 = rect1
+    x2, y2, w2, h2 = rect2
+
+    # Check if they are adjacent horizontally or vertically
+    if x1 + h1 == x2 or x2 + h2 == x1:  # Vertical adjacency
+        return not (y1 + w1 <= y2 or y2 + w2 <= y1)
+    if y1 + w1 == y2 or y2 + w2 == y1:  # Horizontal adjacency
+        return not (x1 + h1 <= x2 or x2 + h2 <= x1)
+    return False
+
+def _are_rooms_adjacent(room1, room2):
+    rects1 = list(room1.iter_rects())
+    rects2 = list(room2.iter_rects())
+
+    for r1 in rects1:
+        for r2 in rects2:
+            if _are_rects_adjacent(r1, r2):
+                return True
+
+    return False
+
+
+def spatial_adj_edges(rooms: list[RoomAreas]):
+    R = len(rooms)
+
+    edges = set()
+
+    for i in range(R):
+        for j in range(i + 1, R):
+            room1 = rooms[i]
+            room2 = rooms[j]
+
+            if _are_rooms_adjacent(room1, room2):
+                edges.add((j + 1, i + 1))
+
+    return edges
+
+
+def target_input_edges(
+    layout_graph,
+    rooms: list[RoomAreas]
+):
+    R = len(rooms)
+
+    target_edges = set()
+
+    for i in range(R):
+        for j in range(i + 1, R):
+            ra = j + 1
+            rb = i + 1
+
+            ra_node_index = rooms[j].room_node_index
+            rb_node_index = rooms[i].room_node_index
+
+            if layout_graph.has_edge(ra_node_index, rb_node_index):
+                target_edges.add((ra, rb))
+
+    return target_edges
