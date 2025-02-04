@@ -11,6 +11,8 @@ from minimal.walls import (
 
 from minimal.walls import _conv_mask
 
+DOOR_LENGTH = 10
+
 def extract_face_walls(sep_mask):
     sp = sep_mask
 
@@ -70,7 +72,7 @@ def _restrict_touching(
 
 # --------------------
 
-def _extract_walls_runs(lx, ly, min_len: int=4):
+def _extract_walls_runs(lx, ly, min_len: int=DOOR_LENGTH):
     
     lx, idx = torch.sort(lx)
     ly = ly[idx]
@@ -246,12 +248,10 @@ def select_rooms_to_join(rooms, input_graph):
 
 # ------
 
-WALL_LEN = 4
-
 def _use_run(run):
     x, y, l, orient = run
 
-    max_push = l - WALL_LEN
+    max_push = l - DOOR_LENGTH
 
     push = random.randint(0, max_push)
 
@@ -260,7 +260,7 @@ def _use_run(run):
     else:
         y += push
 
-    return (x, y, WALL_LEN, orient)
+    return (x, y, DOOR_LENGTH, orient)
 
 
 def create_doors(
@@ -277,6 +277,7 @@ def create_doors(
     for ra, rb in rooms_to_join:
         cruns = candidate_wall_runs(face_walls, room_mask, inv_room_mask, ra, rb)
         if len(cruns) == 0:
+            print(f"Unable to allocate door between {ra} and {rb}")
             continue
 
         # print(cruns)
@@ -285,3 +286,16 @@ def create_doors(
         doors.append(run)
 
     return doors
+
+def create_cut_wall_mask(wall_mask, doors: list[tuple]):
+    walls = (wall_mask > 0).byte()
+    for (x1,y1,l,o) in doors:
+        x2, y2 = x1 + 1, y1 + 1
+        if o == 'h':
+            y2 = y1 + l
+        else:
+            x2 = x1 + l
+
+        walls[x1:x2, y1:y2] = 0
+
+    return walls
