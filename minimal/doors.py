@@ -121,7 +121,7 @@ def candidate_wall_runs(
         if len(lx) == 0:
             continue
     
-        transpose = (i == 0 or i == 3)
+        transpose = (i == 0 or i == 2)
         orient = 'h' if transpose else 'v'
     
         if transpose:
@@ -236,4 +236,8 @@ def select_rooms_to_join(rooms, input_graph):
     R = len(rooms)
     available_edges = spatial_adj_edges(rooms)
     target_edges = target_input_edges(input_graph, rooms)
-    return select_edges(R, available_edges, target_edges)
+
+    return list(select_edges(
+        R,
+        available_edges, target_edges
+    ))
