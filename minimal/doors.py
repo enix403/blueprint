@@ -1,4 +1,5 @@
 import torch
+from scipy.cluster.hierarchy import DisjointSet
 
 from minimal.rooms import RoomAreas
 from minimal.walls import (
@@ -203,3 +204,36 @@ def target_input_edges(
                 target_edges.add((ra, rb))
 
     return target_edges
+
+
+# --------
+
+def select_edges(R, available_edges, target_edges):
+    # copy available edges
+    available_edges = set(available_edges)
+    out_edges = set()
+
+    dsu = DisjointSet(range(1, R + 1))
+
+    for edge in target_edges:
+        if edge in available_edges:
+            out_edges.add(edge)
+            dsu.merge(edge[0], edge[1])
+            available_edges.discard(edge)
+
+    for edge in available_edges:
+        if dsu.n_subsets == 1:
+            break
+            
+        a, b = edge
+        if dsu[a] != dsu[b]:
+            dsu.merge(a, b)
+            out_edges.add(edge)
+
+    return out_edges
+
+def select_rooms_to_join(rooms, input_graph):
+    R = len(rooms)
+    available_edges = spatial_adj_edges(rooms)
+    target_edges = target_input_edges(input_graph, rooms)
+    return select_edges(R, available_edges, target_edges)
