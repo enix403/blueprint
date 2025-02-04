@@ -289,6 +289,15 @@ def extract_rooms(pm: PlanMasks):
 
     return rooms
 
+# -------------------
+
+def create_room_mask(rooms: list[RoomAreas]):
+    return sum(room.to_mask() * (i + 1) for i, room in enumerate(rooms))
+
+def create_inv_room_mask(room_mask, R):
+    return [
+        (room_mask != i).byte() for i in range(1, R + 1)
+    ]
 
 def scale_room_mask(room_mask, scale_x, scale_y):
     return room_mask \
