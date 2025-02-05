@@ -13,138 +13,100 @@ from minimal.walls import _conv_mask
 
 DOOR_LENGTH = 10
 
-def extract_face_walls(sep_mask):
-    sp = sep_mask
-
-    up_walls = (
-           (sp & CC_T).bool() 
-        & ~(sp & CC_L).bool()
-        & ~(sp & CC_R).bool()
-        & ~(sp & CC_B).bool()
-    )
-
-    right_walls = (
-           (sp & CC_R).bool() 
-        & ~(sp & CC_L).bool()
-        & ~(sp & CC_T).bool()
-        & ~(sp & CC_B).bool()
-    )
-
-    down_walls = (
-           (sp & CC_B).bool() 
-        & ~(sp & CC_L).bool()
-        & ~(sp & CC_T).bool()
-        & ~(sp & CC_R).bool()
-    )
-
-    left_walls = (
-           (sp & CC_L).bool() 
-        & ~(sp & CC_B).bool()
-        & ~(sp & CC_T).bool()
-        & ~(sp & CC_R).bool()
-    )
-
-    return [up_walls, right_walls, down_walls, left_walls]
-
 # --------------------
 
-_res_kernel = torch.tensor([
-    [1, 1, 1],
-    [1, 0, 1],
-    [1, 1, 1],
-], dtype=torch.int8)
+# _res_kernel = torch.tensor([
+#     [1, 1, 1],
+#     [1, 0, 1],
+#     [1, 1, 1],
+# ], dtype=torch.int8)
 
-# Keep walls that connect room ra to rb only and none else
-def _restrict_touching(
-    inv_room_mask,
-    room_mask,
-    ra_walls,
-    ra, rb
-):
-    room_mask = room_mask + 1
-    room_mask *= inv_room_mask[ra - 1]
-    room_mask *= inv_room_mask[rb - 1]
+# # Keep walls that connect room ra to rb only and none else
+# def _restrict_touching(
+#     inv_room_mask,
+#     room_mask,
+#     ra_walls,
+#     ra, rb
+# ):
+#     room_mask = room_mask + 1
+#     room_mask *= inv_room_mask[ra - 1]
+#     room_mask *= inv_room_mask[rb - 1]
 
-    restricted = (_conv_mask(room_mask, _res_kernel) == 0).byte()
-    restricted *= ra_walls
+#     restricted = (_conv_mask(room_mask, _res_kernel) == 0).byte()
+#     restricted *= ra_walls
 
-    return restricted
+#     return restricted
 
-# --------------------
+# # --------------------
 
-def _extract_walls_runs(lx, ly, min_len: int=DOOR_LENGTH):
+# def _extract_walls_runs(lx, ly, min_len: int=DOOR_LENGTH):
     
-    lx, idx = torch.sort(lx)
-    ly = ly[idx]
+#     lx, idx = torch.sort(lx)
+#     ly = ly[idx]
     
-    runs = []
+#     runs = []
 
-    prev_x = lx[0]
-    prev_y = ly[0]
-    cur_len = 1
+#     prev_x = lx[0]
+#     prev_y = ly[0]
+#     cur_len = 1
 
-    for x, y in zip(lx[1:], ly[1:]):
-        if x - prev_x != 1 or y != prev_y:
-            if cur_len >= min_len:
-                runs.append((1 + prev_x.item() - cur_len, prev_y.item(), cur_len))
-            cur_len = 1
-        else:
-            cur_len += 1
+#     for x, y in zip(lx[1:], ly[1:]):
+#         if x - prev_x != 1 or y != prev_y:
+#             if cur_len >= min_len:
+#                 runs.append((1 + prev_x.item() - cur_len, prev_y.item(), cur_len))
+#             cur_len = 1
+#         else:
+#             cur_len += 1
 
-        prev_x = x
-        prev_y = y
+#         prev_x = x
+#         prev_y = y
 
-    if cur_len >= min_len:
-        runs.append((1 + prev_x.item() - cur_len, prev_y.item(), cur_len))
+#     if cur_len >= min_len:
+#         runs.append((1 + prev_x.item() - cur_len, prev_y.item(), cur_len))
 
-    return runs
+#     return runs
 
-# --------------------
+# # --------------------
 
-# ra and rb are 1-based indexes of the room
-def candidate_wall_runs(
-    face_walls,
-    room_mask,
-    inv_room_mask,
-    ra, rb,
-):
+# # ra and rb are 1-based indexes of the room
+# def candidate_wall_runs(face_walls, room_mask, inv_room_mask, ra, rb):
 
-    # Keep ra > rb
-    if ra < rb:
-        ra, rb = rb, ra
+#     # Keep ra > rb
+#     if ra < rb:
+#         ra, rb = rb, ra
         
-    all_runs = []
+#     all_runs = []
 
-    ra_mask = (room_mask == ra)
+#     ra_mask = (room_mask == ra)
 
-    for i, fw in enumerate(face_walls):
-        ws = (fw * ra_mask).byte()
-        ws = _restrict_touching(inv_room_mask, room_mask, ws, ra, rb)
-        lx, ly = torch.where(ws > 0)
+#     for i, fw in enumerate(face_walls):
+#         ws = (fw * ra_mask).byte()
+#         ws = _restrict_touching(inv_room_mask, room_mask, ws, ra, rb)
+#         lx, ly = torch.where(ws > 0)
     
-        if len(lx) == 0:
-            continue
+#         if len(lx) == 0:
+#             continue
     
-        transpose = (i == 0 or i == 2)
-        orient = 'h' if transpose else 'v'
+#         transpose = (i == 0 or i == 2)
+#         orient = 'h' if transpose else 'v'
     
-        if transpose:
-            lx, ly = ly, lx
+#         if transpose:
+#             lx, ly = ly, lx
     
-        runs = _extract_walls_runs(lx, ly)
+#         runs = _extract_walls_runs(lx, ly)
 
-        if transpose:
-            all_runs.extend(
-                (y, x, len, orient)
-                for (x, y, len) in runs
-            )
-        else:
-            all_runs.extend(
-                (x, y, len, orient)
-                for (x, y, len) in runs
-            )
+#         if transpose:
+#             all_runs.extend(
+#                 (y, x, len, orient)
+#                 for (x, y, len) in runs
+#             )
+#         else:
+#             all_runs.extend(
+#                 (x, y, len, orient)
+#                 for (x, y, len) in runs
+#             )
 
-    return all_runs
+#     return all_runs
 
 
 # ---------------------
@@ -248,44 +210,44 @@ def select_rooms_to_join(rooms, input_graph):
 
 # ------
 
-def _use_run(run):
-    x, y, l, orient = run
+# def _use_run(run):
+#     x, y, l, orient = run
 
-    max_push = l - DOOR_LENGTH
+#     max_push = l - DOOR_LENGTH
 
-    push = random.randint(0, max_push)
+#     push = random.randint(0, max_push)
 
-    if orient == 'v':
-        x += push
-    else:
-        y += push
+#     if orient == 'v':
+#         x += push
+#     else:
+#         y += push
 
-    return (x, y, DOOR_LENGTH, orient)
+#     return (x, y, DOOR_LENGTH, orient)
 
 
-def create_doors(
-    R,
-    rooms_to_join,
-    room_mask,
-    sep_mask,
-):
-    inv_room_mask = create_inv_room_mask(room_mask, R)
-    face_walls = extract_face_walls(sep_mask)
+# def create_doors(
+#     R,
+#     rooms_to_join,
+#     room_mask,
+#     sep_mask,
+# ):
+#     inv_room_mask = create_inv_room_mask(room_mask, R)
+#     face_walls = extract_face_walls(sep_mask)
 
-    doors = []
+#     doors = []
 
-    for ra, rb in rooms_to_join:
-        cruns = candidate_wall_runs(face_walls, room_mask, inv_room_mask, ra, rb)
-        if len(cruns) == 0:
-            print(f"Unable to allocate door between {ra} and {rb}")
-            continue
+#     for ra, rb in rooms_to_join:
+#         cruns = candidate_wall_runs(face_walls, room_mask, inv_room_mask, ra, rb)
+#         if len(cruns) == 0:
+#             print(f"Unable to allocate door between {ra} and {rb}")
+#             continue
 
-        # print(cruns)
-        run = cruns[0]
-        run = _use_run(run)
-        doors.append(run)
+#         # print(cruns)
+#         run = cruns[0]
+#         run = _use_run(run)
+#         doors.append(run)
 
-    return doors
+#     return doors
 
 def create_cut_wall_mask(wall_mask, doors: list[tuple]):
     walls = (wall_mask > 0).byte()

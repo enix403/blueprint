@@ -68,3 +68,9 @@ for graph in rect_graphs:
     room_masks.append(graph.to_mask())
 
 # ----------------
+
+sep_mask = create_sep_mask(room_masks)
+
+# ----------------
+
+rooms_to_join = select_rooms_to_join(rooms, pm.graph)

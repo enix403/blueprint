@@ -95,6 +95,40 @@ def scale_sep_mask(mask: torch.Tensor, scale_x: int, scale_y: int) -> torch.Tens
 
 # -----------------------------------
 
+def extract_face_walls(sep_mask):
+    sp = sep_mask
+
+    up_walls = (
+           (sp & CC_T).bool() 
+        & ~(sp & CC_L).bool()
+        & ~(sp & CC_R).bool()
+        & ~(sp & CC_B).bool()
+    )
+
+    right_walls = (
+           (sp & CC_R).bool() 
+        & ~(sp & CC_L).bool()
+        & ~(sp & CC_T).bool()
+        & ~(sp & CC_B).bool()
+    )
+
+    down_walls = (
+           (sp & CC_B).bool() 
+        & ~(sp & CC_L).bool()
+        & ~(sp & CC_T).bool()
+        & ~(sp & CC_R).bool()
+    )
+
+    left_walls = (
+           (sp & CC_L).bool() 
+        & ~(sp & CC_B).bool()
+        & ~(sp & CC_T).bool()
+        & ~(sp & CC_R).bool()
+    )
+
+    return [up_walls, right_walls, down_walls, left_walls]
+
+
 """
 
 _dirs = [
