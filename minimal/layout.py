@@ -95,7 +95,7 @@ NODE_NAME = {
 }
 # fmt: on
 
-class LayoutGraph:
+class InputGraph:
     # List of node type IDs.
     nodes: list[int]
 
@@ -126,7 +126,7 @@ class LayoutGraph:
         self.edges = set(map(tuple, edges.tolist()))
 
     def clone(self):
-        return LayoutGraph(
+        return InputGraph(
             copy.deepcopy(self.nodes),
             copy.deepcopy(self.edges),
         )
@@ -278,7 +278,7 @@ class LayoutGraph:
 
 
     def __repr__(self):
-        return f"LayoutGraph({self.nodes}, {list(self.edges)})"
+        return f"InputGraph({self.nodes}, {list(self.edges)})"
 
     def _nodelist(self, func):
         return [func(node) for node in self.nodes]
@@ -287,7 +287,7 @@ class LayoutGraph:
         return { i: func(node) for i, node in enumerate(self.nodes) }
 
 
-class LayoutGraphBuilderNode:
+class InputGraphBuilderNode:
     type: int
 
     def __init__(self, type: int):
@@ -295,23 +295,23 @@ class LayoutGraphBuilderNode:
         self.index = -1
 
 
-class LayoutGraphBuilder:
-    nodes: list[LayoutGraphBuilderNode]
-    edges: list[tuple[LayoutGraphBuilderNode, LayoutGraphBuilderNode]]
+class InputGraphBuilder:
+    nodes: list[InputGraphBuilderNode]
+    edges: list[tuple[InputGraphBuilderNode, InputGraphBuilderNode]]
 
     def __init__(self):
         self.nodes = []
         self.edges = []
 
     def add_node(self, type):
-        node = LayoutGraphBuilderNode(type)
+        node = InputGraphBuilderNode(type)
         self.nodes.append(node)
         return node
 
     def add_edge(
         self,
-        a: Union[LayoutGraphBuilderNode, int],
-        b: Union[LayoutGraphBuilderNode, int],
+        a: Union[InputGraphBuilderNode, int],
+        b: Union[InputGraphBuilderNode, int],
     ):
         if isinstance(a, int):
             a = self.add_node(a)
@@ -324,13 +324,13 @@ class LayoutGraphBuilder:
         return (a, b)
 
 
-    def build(self) -> LayoutGraph:
+    def build(self) -> InputGraph:
         self.nodes.sort(key=lambda n: n.type)
 
         for i, node in enumerate(self.nodes):
             node.index = i
 
-        return LayoutGraph(
+        return InputGraph(
             map(lambda node: node.type, self.nodes),
             map(lambda e: (e[0].index, e[1].index), self.edges)
         )

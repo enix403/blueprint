@@ -127,7 +127,7 @@ def _create_rects_graph(rectangles):
     return G
 
 
-class RoomAreas:
+class RectGraph:
     """
     A class to represent the area of rooms as a graph of axis aligned rectangles.
     """
@@ -154,7 +154,7 @@ class RoomAreas:
         mask: torch.tensor,
     ):
         """
-        Build a RoomAreas instance.
+        Build a RectGraph instance.
 
         Args:
             room_type (int): Type of this room node

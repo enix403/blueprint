@@ -1,6 +1,6 @@
 import torch
 from scipy.cluster.hierarchy import DisjointSet
-from minimal.rooms import RoomAreas
+from minimal.rooms import RectGraph
 
 # --------------------
 
@@ -27,7 +27,7 @@ def _are_rooms_adjacent(room1, room2):
     return False
 
 
-def spatial_adj_edges(rooms: list[RoomAreas]):
+def spatial_adj_edges(rooms: list[RectGraph]):
     R = len(rooms)
 
     edges = set()
@@ -45,7 +45,7 @@ def spatial_adj_edges(rooms: list[RoomAreas]):
 
 def target_input_edges(
     layout_graph,
-    rooms: list[RoomAreas]
+    rooms: list[RectGraph]
 ):
     R = len(rooms)
 

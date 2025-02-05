@@ -1,7 +1,7 @@
-from minimal.layout import LayoutGraphBuilder, LayoutGraph, NodeType
+from minimal.layout import InputGraphBuilder, InputGraph, NodeType
 
 def one():
-    bld = LayoutGraphBuilder()
+    bld = InputGraphBuilder()
 
     liv = bld.add_node(NodeType.LIVING_ROOM)
 
@@ -23,7 +23,7 @@ def one():
     return g
 
 def two():
-    bld = LayoutGraphBuilder()
+    bld = InputGraphBuilder()
 
     liv = bld.add_node(NodeType.LIVING_ROOM)
     kit = bld.add_node(NodeType.KITCHEN)

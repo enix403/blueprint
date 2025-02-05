@@ -13,7 +13,7 @@ except ImportError:
     in_ipython = False
 
 from minimal.pretrained import model
-from minimal.layout import LayoutGraph, NodeType
+from minimal.layout import InputGraph, NodeType
 from minimal.imaging import draw_plan
 
 def _prepare_fixed_masks(masks: torch.tensor, idx_fixed: list[int]):
@@ -80,7 +80,7 @@ def _predict_masks(
     return next_masks.detach()
 
 
-def _make_edge_triplets(graph: LayoutGraph):
+def _make_edge_triplets(graph: InputGraph):
     """
     Convert graph edges into a tensor of triplets for model input.
 
@@ -89,7 +89,7 @@ def _make_edge_triplets(graph: LayoutGraph):
     the nodes `a` and `b` are ordered such that `a < b`
 
     Args:
-        graph (LayoutGraph): Graph containing nodes and edges.
+        graph (InputGraph): Graph containing nodes and edges.
 
     Returns:
         torch.Tensor: Tensor of edge triplets of shape (E, 3).
@@ -115,14 +115,14 @@ def _make_edge_triplets(graph: LayoutGraph):
 @dataclass
 class PlanMasks:
     masks: torch.tensor
-    graph: LayoutGraph
+    graph: InputGraph
 
     @classmethod
     def create_from_state(cls, state):
         masks = state["masks"]
         graph_dict = state["graph_dict"]
 
-        graph = LayoutGraph([], [])
+        graph = InputGraph([], [])
         graph.load_state_dict(graph_dict)
 
         return cls(masks, graph)
@@ -143,14 +143,14 @@ class PlanMasks:
         return f"<PlanMasks {id(self)}>"
 
 def generate_plan(
-    graph: LayoutGraph,
+    graph: InputGraph,
     num_iters: int = 10
 ) -> PlanMasks:
     """
     Generate a floor plan layout
 
     Args:
-        graph (LayoutGraph): Input graph representing the floor plan.
+        graph (InputGraph): Input graph representing the floor plan.
         num_iters (int): Number of refinement iterations.
 
     Returns:
