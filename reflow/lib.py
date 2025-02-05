@@ -11,17 +11,6 @@ class InputGraph:
 class RectGraph:
     pass
 
-# ==============================
-
-def create_sep_mask(room_masks: list):
-    col_mask = torch.ones_like(room_masks[0])
-    sep_mask = torch.zeros_like(room_masks[0])
-
-    for rmask in reversed(room_masks):
-        col_mask *= (1 - rmask)
-        sep_mask += rmask * conv_mask(col_mask, _sep_kernel)
-
-    return sep_mask
 
 # ==============================
 

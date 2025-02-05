@@ -94,6 +94,20 @@ def _candidate_wall_runs(face_walls, room_masks, ra, rb):
 
 # -----------------
 
+def _select_segment_from_run(run):
+    x, y, l, orient = run
+
+    max_push = l - DOOR_LENGTH
+
+    push = random.randint(0, max_push)
+
+    if orient == 'v':
+        x += push
+    else:
+        y += push
+
+    return (x, y, DOOR_LENGTH, orient)
+
 def create_doors(
     R,
     rooms_to_join,
@@ -111,8 +125,8 @@ def create_doors(
 
         # print(cruns)
         run = cruns[0]
-        run = _use_run(run)
-        doors.append(run)
+        door = _select_segment_from_run(run)
+        doors.append(door)
 
     return doors
 
@@ -122,16 +136,15 @@ def create_doors(
 # -----------------
 # -----------------
 
-def _use_run(run):
-    x, y, l, orient = run
+def create_cut_wall_mask(wall_mask, doors: list[tuple]):
+    walls = (wall_mask > 0).byte()
+    for (x1,y1,l,o) in doors:
+        x2, y2 = x1 + 1, y1 + 1
+        if o == 'h':
+            y2 = y1 + l
+        else:
+            x2 = x1 + l
 
-    max_push = l - DOOR_LENGTH
+        walls[x1:x2, y1:y2] = 0
 
-    push = random.randint(0, max_push)
-
-    if orient == 'v':
-        x += push
-    else:
-        y += push
-
-    return (x, y, DOOR_LENGTH, orient)
+    return walls

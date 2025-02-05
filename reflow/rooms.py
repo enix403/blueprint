@@ -6,6 +6,11 @@ import networkx as nx
 from minimal.layout import NodeType
 from minimal.gen import PlanMasks
 
+def calc_min_area(scale: tuple[int, int]):
+    return 4
+
+# -----------
+
 def _largest_rectangle_area(heights):
     """
     Find the largest rectangle area in a histogram.
