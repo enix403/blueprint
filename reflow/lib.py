@@ -1,32 +1,46 @@
+def calc_min_area(scale: tuple[int, int]):
+    return 4
 
-# room_mask
-# neg_room_mask
+# ==============================
 
 class InputGraph:
     pass
 
-class GenerationSettings:
-    graph: InputGraph
-    scale: tuple[int, int]
+# ==============================
 
+class RectGraph:
+    pass
 
-# PROCEDURE calc_min_area(scale):
-#     MIN_AREA_UNSCALED = 10
-#     ...
+# ==============================
+
+def create_sep_mask(room_masks: list):
+    col_mask = torch.ones_like(room_masks[0])
+    sep_mask = torch.zeros_like(room_masks[0])
+
+    for rmask in reversed(room_masks):
+        col_mask *= (1 - rmask)
+        sep_mask += rmask * conv_mask(col_mask, _sep_kernel)
+
+    return sep_mask
+
+# ==============================
 
 # PROCEDURE generate_plan(input_graph: LG, scale: tuple[int, int])
 
 segmentation_masks = run_model(input_graph)
+node_types = input_graph.nodes
 R = input_graph.num_rooms
+
+# ----------------
 
 min_area_units = calc_min_area(scale)
 
-rooms = []
+rect_graphs = []
 for i in range(R):
+    room_type = node_types[i]
     room_sgm_mask = segmentation_masks[i]
-    room_type = input_graph.node_type(i)
 
-    room = RoomAreas(room_type, i, room_sgm_mask)
+    graph = RectGraph(room_type, i, room_sgm_mask)
 
     # Remove short rectangles
     #
@@ -35,12 +49,22 @@ for i in range(R):
     #       (potentially) disconnected rooms
     # TODO: store the removed rects ("bad" rects) to maybe
     #       salvage them later on
-    room.threshold_rectangles(min_area_units)
+    graph.threshold_rectangles(min_area_units)
 
     # Keep the largest connected component (by total area)
     # 
     # TODO: store the removed rects ("bad" rects) to maybe
     #       salvage them later on
-    room.discard_small_components()
+    graph.discard_small_components()
 
-    rooms.append(room)
+    rect_graphs.append(graph)
+
+rect_graphs.sort(key=lambda g: g.total_area())
+
+# ----------------
+
+room_masks = [] # room_mask(r): 1 = yes r / 0 = no r
+for graph in rect_graphs:
+    room_masks.append(graph.to_mask())
+
+# ----------------
