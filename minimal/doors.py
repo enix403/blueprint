@@ -1,7 +1,7 @@
 import random
 import torch
 
-from reflow.common import conv_mask
+from minimal.common import conv_mask
 
 DOOR_LENGTH = 10
 

@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from reflow.common import conv_mask
+from minimal.common import conv_mask
 
 CC_TL = 0b00000001  # Top left corner
 CC_TR = 0b00000010  # Top right corner
