@@ -184,12 +184,12 @@ def generate_plan(
     masks = (masks > 0).byte()
 
     # remove overlap. modifies the `masks` in-place
-    remove_overlap(graph.nodes, masks)
+    _remove_overlap(graph.nodes, masks)
 
     return PlanMasks(masks, graph)
 
 
-def remove_overlap(nodes: list[int], masks: torch.tensor):
+def _remove_overlap(nodes: list[int], masks: torch.tensor):
     rooms = [
         (i, node)
         for i, node in enumerate(nodes)

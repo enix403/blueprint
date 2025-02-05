@@ -20,7 +20,6 @@ class NodeType:
     STUDY_ROOM    = 7
     STORAGE       = 9
     FRONT_DOOR    = 14
-    UNKNOWN       = 15
     INTERIOR_DOOR = 16
     # fmt: on
 
@@ -66,7 +65,6 @@ NODE_COLOR = {
     NodeType.STUDY_ROOM    : "#FF8C69",
     NodeType.STORAGE       : "#1F849B",
     NodeType.FRONT_DOOR    : "#727171",
-    NodeType.UNKNOWN       : "#785A67",
     NodeType.INTERIOR_DOOR : "#D3A2C7",
 }
 
@@ -90,7 +88,6 @@ NODE_NAME = {
     NodeType.STUDY_ROOM    : "S",
     NodeType.STORAGE       : "T",
     NodeType.FRONT_DOOR    : ":F",
-    NodeType.UNKNOWN       : "/",
     NodeType.INTERIOR_DOOR : ":d",
 }
 # fmt: on
