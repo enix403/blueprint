@@ -4,7 +4,6 @@ import torch
 import networkx as nx
 
 from minimal.layout import NodeType
-from minimal.gen import PlanMasks
 
 def calc_min_area(scale: tuple[int, int]):
     return 4

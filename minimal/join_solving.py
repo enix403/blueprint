@@ -44,10 +44,14 @@ def spatial_adj_edges(rooms: list[RectGraph]):
 
 
 def target_input_edges(
-    layout_graph,
+    input_layout,
     rooms: list[RectGraph]
 ):
     R = len(rooms)
+    edges = set(input_layout.edges)
+
+    def has_edge(a, b):
+        return (a, b) in edges or (b, a) in edges
 
     target_edges = set()
 
@@ -59,7 +63,7 @@ def target_input_edges(
             ra_node_index = rooms[j].room_node_index
             rb_node_index = rooms[i].room_node_index
 
-            if layout_graph.has_edge(ra_node_index, rb_node_index):
+            if has_edge(ra_node_index, rb_node_index):
                 target_edges.add((ra, rb))
 
     return target_edges
@@ -91,10 +95,10 @@ def select_edges(R, available_edges, target_edges):
 
     return out_edges
 
-def select_rooms_to_join(rooms, input_graph):
+def select_rooms_to_join(rooms, input_layout):
     R = len(rooms)
     available_edges = spatial_adj_edges(rooms)
-    target_edges = target_input_edges(input_graph, rooms)
+    target_edges = target_input_edges(input_layout, rooms)
 
     return list(select_edges(
         R,

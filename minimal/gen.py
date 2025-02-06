@@ -4,8 +4,7 @@ import torch
 import torch.nn.functional as F
 
 from minimal.pretrained import model
-from minimal.layout import NodeType
-from minimal.layoutv2 import InputLayout, into_layout_unchecked
+from minimal.layout import NodeType, InputLayout, into_layout_unchecked
 
 def _add_interior_doors(layout: InputLayout):
     n = len(layout.node_types)
