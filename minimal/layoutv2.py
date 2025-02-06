@@ -1,3 +1,9 @@
+import networkx as nx
+
+from minimal.layout import NodeType, NODE_COLOR, NODE_NAME
+
+"""
+
 class InputGraph:
 
     def __init__(
@@ -18,7 +24,7 @@ class InputGraph:
             node
             for node, data in G.nodes(data=True)
             if (
-                not data['node_type'] in NODE_NAME
+                data['node_type'] not in NODE_NAME
                 or data['node_type'] == NodeType.INTERIOR_DOOR
             )
         ])
@@ -81,9 +87,15 @@ class InputGraph:
             G,
             nx.kamada_kawai_layout(G),
             node_size=1000,
-            node_color=[NODE_COLOR[d['node_type']] for n, d in G.nodes(data=True)],
+            node_color=[
+                NODE_COLOR[d['node_type']]
+                for n, d in G.nodes(data=True)
+            ],
             with_labels=True,
-            labels={n: NODE_NAME[d['node_type']] for n, d in G.nodes(data=True)},
+            labels={
+                n: NODE_NAME[d['node_type']]
+                for n, d in G.nodes(data=True)
+            },
             font_color="black",
             font_weight="bold",
             font_size=14,
@@ -103,6 +115,7 @@ def user_input(node_types: list[int], edges: list[tuple[int, int]]):
     graph.ensure_front_door()
 
     # WITHOUT INTERIOR DOORS (ofc)
-    # graph.draw()
+    graph.draw()
 
     return graph
+"""
