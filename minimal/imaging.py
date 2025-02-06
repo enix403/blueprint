@@ -3,21 +3,13 @@ import webcolors
 from PIL import Image, ImageDraw
 
 from minimal.layout import NodeType, NODE_COLOR
-from minimal.walls import (
-    CC_TL,
-    CC_TR,
-    CC_BR,
-    CC_BL,
-    CC_T,
-    CC_R,
-    CC_B,
-    CC_L
-)
+from minimal.walls import CC_TL, CC_TR, CC_BR, CC_BL, CC_T, CC_R, CC_B, CC_L
+
 
 def draw_plan(
-    masks, # torch.tensor of size (R, 64, 64) (torch.float32)
+    masks,  # torch.tensor of size (R, 64, 64) (torch.float32)
     nodes,  # list[int] of length R
-    img_size=256
+    img_size=256,
 ):
     plan_img = Image.new("RGB", (64, 64), (255, 255, 255))
     draw = ImageDraw.Draw(plan_img)
@@ -32,11 +24,8 @@ def draw_plan(
 
     return plan_img.resize((img_size, img_size), Image.Resampling.BOX)
 
-def blit_rooms(
-    rooms: list,
-    sep_mask=None,
-    out_size=256
-):
+
+def blit_rooms(rooms: list, sep_mask=None, out_size=256):
     h = rooms[0].grid_height
     w = rooms[0].grid_width
 
@@ -61,7 +50,9 @@ def blit_rooms(
     return plan_img.resize((out_size, out_size), Image.Resampling.BOX)
 
 
-def draw_sep_nask_wireframe(mask: torch.Tensor, cell_size: int = 40, dot_radius: int = 4):
+def draw_sep_nask_wireframe(
+    mask: torch.Tensor, cell_size: int = 40, dot_radius: int = 4
+):
     # Constants
     bg_color = "#282828"
     dot_color = "#8BFF6B"
@@ -91,27 +82,46 @@ def draw_sep_nask_wireframe(mask: torch.Tensor, cell_size: int = 40, dot_radius:
                 CC_BR: (cell_x + cell_size, cell_y + cell_size),  # Bottom-right
                 CC_BL: (cell_x, cell_y + cell_size),  # Bottom-left
                 CC_T: (cell_x + cell_size // 2, cell_y),  # Top edge (middle)
-                CC_R: (cell_x + cell_size, cell_y + cell_size // 2),  # Right edge (middle)
-                CC_B: (cell_x + cell_size // 2, cell_y + cell_size),  # Bottom edge (middle)
+                CC_R: (
+                    cell_x + cell_size,
+                    cell_y + cell_size // 2,
+                ),  # Right edge (middle)
+                CC_B: (
+                    cell_x + cell_size // 2,
+                    cell_y + cell_size,
+                ),  # Bottom edge (middle)
                 CC_L: (cell_x, cell_y + cell_size // 2),  # Left edge (middle)
             }
 
             # Draw edge connections between corners first (so dots render on top)
             if cell_value & CC_T:  # Top edge
-                draw.line([positions[CC_TL], positions[CC_TR]], fill=edge_line_color, width=2)
+                draw.line(
+                    [positions[CC_TL], positions[CC_TR]], fill=edge_line_color, width=2
+                )
             if cell_value & CC_R:  # Right edge
-                draw.line([positions[CC_TR], positions[CC_BR]], fill=edge_line_color, width=2)
+                draw.line(
+                    [positions[CC_TR], positions[CC_BR]], fill=edge_line_color, width=2
+                )
             if cell_value & CC_B:  # Bottom edge
-                draw.line([positions[CC_BL], positions[CC_BR]], fill=edge_line_color, width=2)
+                draw.line(
+                    [positions[CC_BL], positions[CC_BR]], fill=edge_line_color, width=2
+                )
             if cell_value & CC_L:  # Left edge
-                draw.line([positions[CC_TL], positions[CC_BL]], fill=edge_line_color, width=2)
+                draw.line(
+                    [positions[CC_TL], positions[CC_BL]], fill=edge_line_color, width=2
+                )
 
             # Draw dots and lines to center
             for bit, pos in positions.items():
                 if cell_value & bit:
                     draw.line([center, pos], fill=center_line_color, width=2)
                     draw.ellipse(
-                        (pos[0] - dot_radius, pos[1] - dot_radius, pos[0] + dot_radius, pos[1] + dot_radius),
+                        (
+                            pos[0] - dot_radius,
+                            pos[1] - dot_radius,
+                            pos[0] + dot_radius,
+                            pos[1] + dot_radius,
+                        ),
                         fill=dot_color,
                         # outline="white"
                     )

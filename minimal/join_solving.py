@@ -4,6 +4,7 @@ from minimal.rooms import RectGraph
 
 # --------------------
 
+
 def _are_rects_adjacent(rect1, rect2):
     x1, y1, w1, h1 = rect1
     x2, y2, w2, h2 = rect2
@@ -14,6 +15,7 @@ def _are_rects_adjacent(rect1, rect2):
     if y1 + w1 == y2 or y2 + w2 == y1:  # Horizontal adjacency
         return not (x1 + h1 <= x2 or x2 + h2 <= x1)
     return False
+
 
 def _are_rooms_adjacent(room1, room2):
     rects1 = list(room1.iter_rects())
@@ -43,10 +45,7 @@ def spatial_adj_edges(rooms: list[RectGraph]):
     return edges
 
 
-def target_input_edges(
-    input_layout,
-    rooms: list[RectGraph]
-):
+def target_input_edges(input_layout, rooms: list[RectGraph]):
     R = len(rooms)
     edges = set(input_layout.edges)
 
@@ -71,6 +70,7 @@ def target_input_edges(
 
 # --------
 
+
 def select_edges(R, available_edges, target_edges):
     # copy available edges
     available_edges = set(available_edges)
@@ -87,7 +87,7 @@ def select_edges(R, available_edges, target_edges):
     for edge in available_edges:
         if dsu.n_subsets == 1:
             break
-            
+
         a, b = edge
         if dsu[a] != dsu[b]:
             dsu.merge(a, b)
@@ -95,12 +95,10 @@ def select_edges(R, available_edges, target_edges):
 
     return out_edges
 
+
 def select_rooms_to_join(rooms, input_layout):
     R = len(rooms)
     available_edges = spatial_adj_edges(rooms)
     target_edges = target_input_edges(input_layout, rooms)
 
-    return list(select_edges(
-        R,
-        available_edges, target_edges
-    ))
+    return list(select_edges(R, available_edges, target_edges))

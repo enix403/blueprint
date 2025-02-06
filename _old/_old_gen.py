@@ -8,6 +8,7 @@ from PIL import Image
 
 try:
     from IPython.display import display
+
     in_ipython = True
 except ImportError:
     in_ipython = False
@@ -15,6 +16,7 @@ except ImportError:
 from minimal.pretrained import model
 from minimal.layout import InputGraph, NodeType
 from minimal.imaging import draw_plan
+
 
 def _prepare_fixed_masks(masks: torch.tensor, idx_fixed: list[int]):
     """
@@ -112,6 +114,7 @@ def _make_edge_triplets(graph: InputGraph):
 
     return torch.tensor(triplets, dtype=torch.long)
 
+
 @dataclass
 class PlanMasks:
     masks: torch.tensor
@@ -142,10 +145,8 @@ class PlanMasks:
 
         return f"<PlanMasks {id(self)}>"
 
-def generate_plan(
-    graph: InputGraph,
-    num_iters: int = 10
-) -> PlanMasks:
+
+def generate_plan(graph: InputGraph, num_iters: int = 10) -> PlanMasks:
     """
     Generate a floor plan layout
 
@@ -190,21 +191,16 @@ def generate_plan(
 
 
 def _remove_overlap(nodes: list[int], masks: torch.tensor):
-    rooms = [
-        (i, node)
-        for i, node in enumerate(nodes)
-        if NodeType.is_room(node)
-    ]
+    rooms = [(i, node) for i, node in enumerate(nodes) if NodeType.is_room(node)]
 
     # sort from least important to most important
     rooms.sort(key=lambda room: room[1], reverse=True)
 
     taken_mask = torch.zeros_like(masks[0])
 
-    for (i, _) in rooms:
+    for i, _ in rooms:
         # clear room's mask based on taken_mask
         masks[i] = torch.logical_and(masks[i], torch.logical_not(taken_mask))
 
         # update taken_mask from room's mask
         taken_mask = torch.logical_or(taken_mask, masks[i])
-

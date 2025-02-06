@@ -6,20 +6,24 @@ import torch.nn.functional as F
 
 from minimal.rooms import RoomAreas
 
+
 def _shift_up(m):
     """Shifts a 2D mask `m` up"""
     top, rest = m[:1, :], m[1:, :]
     return torch.cat([rest, top], dim=0)
+
 
 def _shift_down(m):
     """Shifts a 2D mask `m` down"""
     rest, bottom = m[:-1, :], m[-1:, :]
     return torch.cat([bottom, rest], dim=0)
 
+
 def _shift_left(m):
     """Shifts a 2D mask `m` left"""
     first, rest = m[:, :1], m[:, 1:]
     return torch.cat([rest, first], dim=1)
+
 
 def _shift_right(m):
     """Shifts a 2D mask `m` down"""
@@ -27,7 +31,7 @@ def _shift_right(m):
     return torch.cat([last, rest], dim=1)
 
 
-def _conv_mask(mask, kernel, threshold_match = None):
+def _conv_mask(mask, kernel, threshold_match=None):
     mask = mask.to(torch.int8).unsqueeze(0).unsqueeze(0)
     # kernel is assumed to be in int8
     kernel = kernel.unsqueeze(0).unsqueeze(0)
@@ -43,6 +47,7 @@ def _conv_mask(mask, kernel, threshold_match = None):
 
     return result
 
+
 # --------------
 
 # fmt: off
@@ -51,6 +56,7 @@ BOUNDARY_RIGHT  = 0b0010
 BOUNDARY_BOTTOM = 0b0100
 BOUNDARY_LEFT   = 0b1000
 # fmt: on
+
 
 def walls_between(room_mask, check_room_mask):
     a = room_mask
@@ -104,20 +110,17 @@ def intersect_rooms(rooms: list[RoomAreas]):
 
     return walls_mask, orient_mask, inner_mask
 
+
 # -----------------
 
 # L-shaped disonnected corners
-_l_corners = torch.tensor([
-    [-1,  2,  0],
-    [ 2, -1,  0],
-    [ 0,  0,  0]
-], dtype=torch.int8)
+_l_corners = torch.tensor([[-1, 2, 0], [2, -1, 0], [0, 0, 0]], dtype=torch.int8)
 
 kerns_l_corners = [
-    _l_corners, # R + B
-    torch.flip(_l_corners, (0,)), # T + R
-    torch.flip(_l_corners, (1,)), # B + L
-    torch.flip(_l_corners, (0, 1)), # T + L
+    _l_corners,  # R + B
+    torch.flip(_l_corners, (0,)),  # T + R
+    torch.flip(_l_corners, (1,)),  # B + L
+    torch.flip(_l_corners, (0, 1)),  # T + L
 ]
 
 # orientations_l_corners = [
@@ -132,11 +135,7 @@ BOUNDARY_VERTICAL = BOUNDARY_TOP + BOUNDARY_BOTTOM
 BOUNDARY_HORIZONTAL = BOUNDARY_LEFT + BOUNDARY_RIGHT
 
 # extra/duplicated corners
-_dup_corners = torch.tensor([
-    [ 2,  0,  0],
-    [ 2,  2,  0],
-    [ 2,  2,  2]
-], dtype=torch.int8)
+_dup_corners = torch.tensor([[2, 0, 0], [2, 2, 0], [2, 2, 2]], dtype=torch.int8)
 
 kerns_dup_corners = [
     _dup_corners,
@@ -145,12 +144,18 @@ kerns_dup_corners = [
     torch.flip(_dup_corners, (0, 1)),
 ]
 
+
 def NTB(val):
-    if val == BOUNDARY_TOP: return "T"
-    if val == BOUNDARY_RIGHT: return "R"
-    if val == BOUNDARY_BOTTOM: return "B"
-    if val == BOUNDARY_LEFT: return "L"
+    if val == BOUNDARY_TOP:
+        return "T"
+    if val == BOUNDARY_RIGHT:
+        return "R"
+    if val == BOUNDARY_BOTTOM:
+        return "B"
+    if val == BOUNDARY_LEFT:
+        return "L"
     return "/"
+
 
 def join_wall_corners(walls_mask, orient_mask, inner_mask):
     initial = walls_mask
@@ -189,6 +194,7 @@ def join_wall_corners(walls_mask, orient_mask, inner_mask):
 
 
 # =========================
+
 
 def extract_walls(rooms: list[RoomAreas]):
     walls_mask, orient_mask, inner_mask = intersect_rooms(rooms)

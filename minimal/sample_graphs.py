@@ -1,5 +1,6 @@
 from minimal.layout import InputLayoutBuilder, NodeType
 
+
 def one():
     bld = InputLayoutBuilder()
 
@@ -18,6 +19,7 @@ def one():
     bld.add_edge(liv, b1)
 
     return bld.build()
+
 
 def two():
     bld = InputLayoutBuilder()

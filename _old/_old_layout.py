@@ -7,6 +7,7 @@ import torch
 import networkx as nx
 from matplotlib import colors
 
+
 class NodeType:
     # Node types (rooms/doors) and their IDs from HouseGAN++
     # fmt: off
@@ -92,6 +93,7 @@ NODE_NAME = {
 }
 # fmt: on
 
+
 class InputGraph:
     # List of node type IDs.
     nodes: list[int]
@@ -101,11 +103,7 @@ class InputGraph:
     # that node[a] is a neighbour of node[b]
     edges: set[tuple[int, int]]
 
-    def __init__(
-        self,
-        nodes: Iterable[int],
-        edges: Iterable[tuple[int, int]]
-    ):
+    def __init__(self, nodes: Iterable[int], edges: Iterable[tuple[int, int]]):
         self.nodes = list(nodes)
         self.edges = set(edges)
 
@@ -131,10 +129,7 @@ class InputGraph:
     def to_networkx(self):
         G = nx.Graph()
 
-        G.add_nodes_from([
-            (i, { "node_type": n })
-            for i, n in enumerate(self.nodes)
-        ])
+        G.add_nodes_from([(i, {"node_type": n}) for i, n in enumerate(self.nodes)])
         G.add_edges_from(self.edges)
 
         return G
@@ -170,13 +165,13 @@ class InputGraph:
                 b -= 1
 
             new_edges.append((a, b))
-        
+
         self.edges = set(new_edges)
 
     def _get_degrees(self):
         deg = [0 for n in self.nodes]
 
-        for (a, b) in self.edges:
+        for a, b in self.edges:
             deg[a] += 1
             deg[b] += 1
 
@@ -191,7 +186,7 @@ class InputGraph:
         for i, node in enumerate(self.nodes):
             if node == NodeType.INTERIOR_DOOR and deg[i] != 2:
                 doors_to_delete.append(i)
-            
+
         # reverse the list so that no shifting is necessary
         for i in reversed(doors_to_delete):
             self.delete_node(i)
@@ -201,7 +196,7 @@ class InputGraph:
         # connected rooms nodes
         adjacent_rooms = []
 
-        for (a, b) in self.edges:
+        for a, b in self.edges:
             na = self.nodes[a]
             nb = self.nodes[b]
 
@@ -212,7 +207,7 @@ class InputGraph:
                     adjacent_rooms.append((a, b))
 
         for a, b in adjacent_rooms:
-            door_idx = len(self.nodes) 
+            door_idx = len(self.nodes)
             self.nodes.append(NodeType.INTERIOR_DOOR)
 
             self.edges.add((a, door_idx))
@@ -273,7 +268,6 @@ class InputGraph:
             width=2.0,
         )
 
-
     def __repr__(self):
         return f"InputGraph({self.nodes}, {list(self.edges)})"
 
@@ -281,7 +275,7 @@ class InputGraph:
         return [func(node) for node in self.nodes]
 
     def _nodedict(self, func):
-        return { i: func(node) for i, node in enumerate(self.nodes) }
+        return {i: func(node) for i, node in enumerate(self.nodes)}
 
 
 class InputGraphBuilderNode:
@@ -320,7 +314,6 @@ class InputGraphBuilder:
 
         return (a, b)
 
-
     def build(self) -> InputGraph:
         self.nodes.sort(key=lambda n: n.type)
 
@@ -329,7 +322,5 @@ class InputGraphBuilder:
 
         return InputGraph(
             map(lambda node: node.type, self.nodes),
-            map(lambda e: (e[0].index, e[1].index), self.edges)
+            map(lambda e: (e[0].index, e[1].index), self.edges),
         )
-
-

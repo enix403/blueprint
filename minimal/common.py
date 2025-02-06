@@ -2,7 +2,8 @@ import torch
 import torch.nn.functional as F
 import networkx as nx
 
-def conv_mask(mask, kernel, threshold_match = None):
+
+def conv_mask(mask, kernel, threshold_match=None):
     mask = mask.to(torch.int8).unsqueeze(0).unsqueeze(0)
     # kernel is assumed to be in int8
     kernel = kernel.unsqueeze(0).unsqueeze(0)
@@ -18,37 +19,25 @@ def conv_mask(mask, kernel, threshold_match = None):
 
     return result
 
+
 # -----------------------
+
 
 def attr_graph_to_nx(node_attrs, edges, attr_key: str):
     G = nx.Graph()
-    G.add_nodes_from([
-        (i, { attr_key: typ })
-        for i, typ in enumerate(node_attrs)
-    ])
+    G.add_nodes_from([(i, {attr_key: typ}) for i, typ in enumerate(node_attrs)])
     G.add_edges_from(edges)
     return G
 
+
 # -----------------------
 
-def flatten_nx_graph(
-    G,
-    select_key: str,
-    sort_key: str,
-    reverse: bool=False
-):
-    nodes = sorted(
-        G.nodes,
-        key=lambda n: G.nodes[n][sort_key],
-        reverse=reverse
-    )
+
+def flatten_nx_graph(G, select_key: str, sort_key: str, reverse: bool = False):
+    nodes = sorted(G.nodes, key=lambda n: G.nodes[n][sort_key], reverse=reverse)
     node_keys = [G.nodes[n][select_key] for n in nodes]
 
-    G = nx.relabel_nodes(
-        G,
-        mapping={ n: i for i, n in enumerate(nodes) },
-        copy=True
-    )
+    G = nx.relabel_nodes(G, mapping={n: i for i, n in enumerate(nodes)}, copy=True)
 
     edges = list(G.edges)
 

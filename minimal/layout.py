@@ -6,6 +6,7 @@ import networkx as nx
 # from minimal.layout import NodeType, NODE_COLOR, NODE_NAME
 from minimal.common import flatten_nx_graph, attr_graph_to_nx
 
+
 class NodeType:
     # Node types (rooms/doors) and their IDs from HouseGAN++
     # fmt: off
@@ -51,6 +52,7 @@ class NodeType:
         """
         return not cls.is_door(node)
 
+
 # fmt: off
 NODE_COLOR = {
     NodeType.LIVING_ROOM   : "#EE4D4D",
@@ -85,37 +87,26 @@ NODE_NAME = {
 
 # ------------------------
 
+
 @dataclass(frozen=True)
 class InputLayout:
     node_types: list[int]
     edges: list[tuple[int, int]]
 
-
     def num_rooms(self):
         # TODO: need to optimize ?
         return len(list(filter(NodeType.is_room, self.node_types)))
 
-
     def draw(self):
-        G = attr_graph_to_nx(
-            self.node_types,
-            self.edges,
-            'node_type'
-        )
+        G = attr_graph_to_nx(self.node_types, self.edges, "node_type")
 
         nx.draw(
             G,
             nx.kamada_kawai_layout(G),
             node_size=1000,
-            node_color=[
-                NODE_COLOR[d['node_type']]
-                for n, d in G.nodes(data=True)
-            ],
+            node_color=[NODE_COLOR[d["node_type"]] for n, d in G.nodes(data=True)],
             with_labels=True,
-            labels={
-                n: NODE_NAME[d['node_type']]
-                for n, d in G.nodes(data=True)
-            },
+            labels={n: NODE_NAME[d["node_type"]] for n, d in G.nodes(data=True)},
             font_color="black",
             font_weight="bold",
             font_size=14,
@@ -126,9 +117,9 @@ class InputLayout:
 
 def _ensure_front_door(G: nx.Graph):
     front_doors = [
-        node for
-        node, data in G.nodes(data=True)
-        if data['node_type'] == NodeType.FRONT_DOOR
+        node
+        for node, data in G.nodes(data=True)
+        if data["node_type"] == NodeType.FRONT_DOOR
     ]
 
     if len(front_doors) > 1:
@@ -151,7 +142,7 @@ def _ensure_front_door(G: nx.Graph):
 
         for node, data in G.nodes(data=True):
             next_node = max(node, next_node)
-            node_type = data['node_type']
+            node_type = data["node_type"]
 
             if not NodeType.is_room(node_type):
                 continue
@@ -167,14 +158,16 @@ def _ensure_front_door(G: nx.Graph):
 
 def _clean_layout_graph(G: nx.Graph):
     # remove invalid nodes
-    G.remove_nodes_from([
-        node
-        for node, data in G.nodes(data=True)
-        if (
-            data['node_type'] not in NODE_NAME
-            or data['node_type'] == NodeType.INTERIOR_DOOR
-        )
-    ])
+    G.remove_nodes_from(
+        [
+            node
+            for node, data in G.nodes(data=True)
+            if (
+                data["node_type"] not in NODE_NAME
+                or data["node_type"] == NodeType.INTERIOR_DOOR
+            )
+        ]
+    )
 
     # keep the largest component, discard rest
     comps = sorted(nx.connected_components(G), key=len, reverse=True)
@@ -188,16 +181,14 @@ def _clean_layout_graph(G: nx.Graph):
 
 def into_layout(node_types, edges):
     # Convert this flat structure into a nx.Graph
-    G = attr_graph_to_nx(node_types, edges, 'node_type')
+    G = attr_graph_to_nx(node_types, edges, "node_type")
 
     # Validate and clean the graph
     _clean_layout_graph(G)
 
     # Convert the graph back to flat lists
     node_types, edges = flatten_nx_graph(
-        G,
-        select_key='node_type',
-        sort_key='node_type'
+        G, select_key="node_type", sort_key="node_type"
     )
 
     return InputLayout(node_types, edges)
@@ -206,7 +197,9 @@ def into_layout(node_types, edges):
 def into_layout_unchecked(node_types, edges):
     return InputLayout(node_types, edges)
 
+
 # --------------------------------
+
 
 class InputLayoutBuilderNode:
     type: int
@@ -244,14 +237,11 @@ class InputLayoutBuilder:
 
         return (a, b)
 
-
     def build(self) -> InputLayout:
         for i, node in enumerate(self.nodes):
             node.index = i
 
         return into_layout(
             list(map(lambda node: node.type, self.nodes)),
-            list(map(lambda e: (e[0].index, e[1].index), self.edges))
+            list(map(lambda e: (e[0].index, e[1].index), self.edges)),
         )
-
-

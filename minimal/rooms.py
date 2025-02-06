@@ -5,15 +5,18 @@ import networkx as nx
 
 from minimal.layout import NodeType
 
+
 def calc_min_area(scale: tuple[int, int]):
     return 4
 
+
 # -----------
+
 
 def _largest_rectangle_area(heights):
     """
     Find the largest rectangle area in a histogram.
-    
+
     Args:
         heights (list[int]): A list of heights of histogram bars.
 
@@ -89,11 +92,13 @@ def _split_into_rectangles(grid):
         rectangles.append((x, y, width, height))
 
         # Set the cells of the found rectangle to 0
-        grid[x:x + height, y:y + width] = 0
+        grid[x : x + height, y : y + width] = 0
 
     return rectangles
 
+
 # ---------
+
 
 def _create_rects_graph(rectangles):
     """
@@ -105,6 +110,7 @@ def _create_rects_graph(rectangles):
     Returns:
         networkx.Graph: A graph where nodes are rectangle indices and edges represent adjacency.
     """
+
     def is_adjacent(rect1, rect2):
         x1, y1, w1, h1 = rect1
         x2, y2, w2, h2 = rect2
@@ -181,17 +187,13 @@ class RectGraph:
         Returns:
             torch.Tensor: A binary grid (n x m) reconstructed from the rectangles.
         """
-        mask = torch.zeros(
-            (self.grid_height, self.grid_width),
-            dtype=torch.uint8
-        )
+        mask = torch.zeros((self.grid_height, self.grid_width), dtype=torch.uint8)
 
         for i, data in self.rects_graph.nodes(data=True):
-            x, y, w, h = data['xywh']
-            mask[x:x + h, y:y + w] = 1
+            x, y, w, h = data["xywh"]
+            mask[x : x + h, y : y + w] = 1
 
         return mask
-
 
     # def scale_by(self, scale_height: int, scale_width: int):
     #     # TODO: make sure everything is int
@@ -202,7 +204,7 @@ class RectGraph:
 
     #     for node in G.nodes:
     #         x, y, w, h = G.nodes[node]['xywh']
-            
+
     #         x *= scale_height
     #         h *= scale_height
 
@@ -211,15 +213,12 @@ class RectGraph:
 
     #         G.nodes[node]['xywh'] = (x, y, w, h)
 
-
     def _area_of(self, node: int):
-        _, _, w, h = self.rects_graph.nodes[node]['xywh']
+        _, _, w, h = self.rects_graph.nodes[node]["xywh"]
         return w * h
-
 
     def total_area(self):
         return sum(map(self._area_of, self.rects_graph.nodes))
-        
 
     def threshold_rectangles(self, min_area_units: int):
         nodes_to_remove = []
@@ -227,16 +226,15 @@ class RectGraph:
         G = self.rects_graph
 
         for node in G.nodes:
-            _, _, w, h = G.nodes[node]['xywh']
+            _, _, w, h = G.nodes[node]["xywh"]
 
             if w * h < min_area_units:
                 nodes_to_remove.append(node)
 
         G.remove_nodes_from(nodes_to_remove)
 
-
     def discard_small_components(self):
-        # find the largest connected components 
+        # find the largest connected components
 
         comps = list(nx.connected_components(self.rects_graph))
 
@@ -260,20 +258,18 @@ class RectGraph:
 
         self.rects_graph.remove_nodes_from(nodes_to_remove)
 
-
     def iter_rects(self):
         for node in self.rects_graph.nodes:
-            yield self.rects_graph.nodes[node]['xywh']
+            yield self.rects_graph.nodes[node]["xywh"]
 
 
 # ------------------
+
 
 def scale_room_masks(room_masks, scale):
     sx, sy = scale
 
     return [
-        mask \
-            .repeat_interleave(sx, dim=0) \
-            .repeat_interleave(sy, dim=1)
+        mask.repeat_interleave(sx, dim=0).repeat_interleave(sy, dim=1)
         for mask in room_masks
     ]

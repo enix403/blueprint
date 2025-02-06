@@ -8,23 +8,27 @@ CC_TR = 0b00000010  # Top right corner
 CC_BR = 0b00000100  # Bottom right corner
 CC_BL = 0b00001000  # Bottom left corner
 
-CC_T  = 0b00010000  # Top edge
-CC_R  = 0b00100000  # Right edge
-CC_B  = 0b01000000  # Bottom edge
-CC_L  = 0b10000000  # Left edge
+CC_T = 0b00010000  # Top edge
+CC_R = 0b00100000  # Right edge
+CC_B = 0b01000000  # Bottom edge
+CC_L = 0b10000000  # Left edge
 
-_sep_kernel = torch.tensor([
-    [CC_TL,  CC_T, CC_TR],
-    [CC_L ,     0,  CC_R],
-    [CC_BL,  CC_B, CC_BR],
-], dtype=torch.int8)
+_sep_kernel = torch.tensor(
+    [
+        [CC_TL, CC_T, CC_TR],
+        [CC_L, 0, CC_R],
+        [CC_BL, CC_B, CC_BR],
+    ],
+    dtype=torch.int8,
+)
+
 
 def create_sep_mask(room_masks: list):
     col_mask = torch.ones_like(room_masks[0])
     sep_mask = torch.zeros_like(room_masks[0])
 
     for rmask in reversed(room_masks):
-        col_mask *= (1 - rmask)
+        col_mask *= 1 - rmask
         sep_mask += rmask * conv_mask(col_mask, _sep_kernel)
 
     return sep_mask
@@ -35,9 +39,9 @@ def scale_sep_mask(mask: torch.Tensor, scale_x: int, scale_y: int) -> torch.Tens
     new_x, new_y = len_x * scale_x, len_y * scale_y
 
     # Create the expanded mask (replicates each value into a (scale_x, scale_y) block)
-    mask_expanded = mask \
-        .repeat_interleave(scale_x, dim=0) \
-        .repeat_interleave(scale_y, dim=1)
+    mask_expanded = mask.repeat_interleave(scale_x, dim=0).repeat_interleave(
+        scale_y, dim=1
+    )
 
     # Create index grids for the expanded space
     x_idx = torch.arange(new_x).view(-1, 1).expand(new_x, new_y)
@@ -60,7 +64,7 @@ def scale_sep_mask(mask: torch.Tensor, scale_x: int, scale_y: int) -> torch.Tens
     scaled_mask[bottom_row & right_col] |= mask_expanded[bottom_row & right_col] & CC_BR
     # Bottom-left
     scaled_mask[bottom_row & left_col] |= mask_expanded[bottom_row & left_col] & CC_BL
-    
+
     # Top edge
     scaled_mask[top_row] |= mask_expanded[top_row] & CC_T
     # Right edge
@@ -72,34 +76,36 @@ def scale_sep_mask(mask: torch.Tensor, scale_x: int, scale_y: int) -> torch.Tens
 
     return scaled_mask
 
+
 # -----------------------------------
+
 
 def extract_face_walls(sep_mask):
     sp = sep_mask
 
     up_walls = (
-           (sp & CC_T).bool() 
+        (sp & CC_T).bool()
         & ~(sp & CC_L).bool()
         & ~(sp & CC_R).bool()
         & ~(sp & CC_B).bool()
     )
 
     right_walls = (
-           (sp & CC_R).bool() 
+        (sp & CC_R).bool()
         & ~(sp & CC_L).bool()
         & ~(sp & CC_T).bool()
         & ~(sp & CC_B).bool()
     )
 
     down_walls = (
-           (sp & CC_B).bool() 
+        (sp & CC_B).bool()
         & ~(sp & CC_L).bool()
         & ~(sp & CC_T).bool()
         & ~(sp & CC_R).bool()
     )
 
     left_walls = (
-           (sp & CC_L).bool() 
+        (sp & CC_L).bool()
         & ~(sp & CC_B).bool()
         & ~(sp & CC_T).bool()
         & ~(sp & CC_R).bool()

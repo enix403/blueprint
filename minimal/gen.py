@@ -6,22 +6,22 @@ import torch.nn.functional as F
 from minimal.pretrained import model
 from minimal.layout import NodeType, InputLayout, into_layout_unchecked
 
+
 def _add_interior_doors(layout: InputLayout):
     n = len(layout.node_types)
 
     door_nodes = []
     door_edges = []
 
-    for (a, b) in layout.edges:
+    for a, b in layout.edges:
         if not NodeType.is_room(a) or not NodeType.is_room(b):
             continue
 
-        door_idx = n + len(door_nodes) 
+        door_idx = n + len(door_nodes)
         door_nodes.append(NodeType.INTERIOR_DOOR)
 
         door_edges.append((a, door_idx))
         door_edges.append((b, door_idx))
-
 
     node_types = layout.node_types + door_nodes
     edges = layout.edges + door_edges
@@ -55,9 +55,11 @@ def _make_edge_triplets(n, edges):
                 )
             )
 
-    return torch.tensor(triplets, dtype=torch.long)  
+    return torch.tensor(triplets, dtype=torch.long)
+
 
 # ------------------
+
 
 def _prepare_fixed_masks(masks: torch.tensor, idx_fixed: list[int]):
     """
@@ -122,34 +124,33 @@ def _predict_masks(
     next_masks = model(z, fixed_masks, nodes_enc, edges_enc)
     return next_masks.detach()
 
+
 # ------------------
 
+
 def _remove_overlap(nodes: list[int], masks: torch.tensor):
-    rooms = [
-        (i, node)
-        for i, node in enumerate(nodes)
-        if NodeType.is_room(node)
-    ]
+    rooms = [(i, node) for i, node in enumerate(nodes) if NodeType.is_room(node)]
 
     # sort from least important to most important
     rooms.sort(key=lambda room: room[1], reverse=True)
 
     taken_mask = torch.zeros_like(masks[0])
 
-    for (i, _) in rooms:
+    for i, _ in rooms:
         # clear room's mask based on taken_mask
         masks[i] = torch.logical_and(masks[i], torch.logical_not(taken_mask))
 
         # update taken_mask from room's mask
         taken_mask = torch.logical_or(taken_mask, masks[i])
 
+
 # ------------------
 # ------------------
 
+
 def run_model(
-    layout: InputLayout,
-    num_iters: int = 10
-) -> torch.tensor: # shape = (R, 64, 64)
+    layout: InputLayout, num_iters: int = 10
+) -> torch.tensor:  # shape = (R, 64, 64)
     """
     Generate a new set of floor plan segmentation masks from
     an input layout
@@ -193,23 +194,23 @@ def run_model(
 
     return masks
 
+
 # ------------
+
 
 def _create_segmentation_dict(layout, masks):
     return {
-        "layout": {
-            "node_types": layout.node_types,
-            "edges": layout.edges
-        },
+        "layout": {"node_types": layout.node_types, "edges": layout.edges},
         "masks": masks,
     }
+
 
 def _load_segmentation_dict(state):
     masks = state["masks"]
 
     layout_dict = state["layout"]
-    node_types = layout_dict['node_types']
-    edges = layout_dict['edges']
+    node_types = layout_dict["node_types"]
+    edges = layout_dict["edges"]
     layout = into_layout_unchecked(node_types, edges)
 
     return layout, masks
