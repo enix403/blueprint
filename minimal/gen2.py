@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 from minimal.pretrained import model
 from minimal.layout import NodeType
-from minimal.layoutv2 import InputLayout
+from minimal.layoutv2 import InputLayout, into_layout_unchecked
 
 def _add_interior_doors(layout: InputLayout):
     n = len(layout.node_types)
@@ -196,5 +196,21 @@ def run_model(
 
 # ------------
 
-def _save_segmentation(layout, masks):
-    pass
+def _create_segmentation_dict(layout, masks):
+    return {
+        "layout": {
+            "node_types": layout.node_types,
+            "edges": layout.edges
+        },
+        "masks": masks,
+    }
+
+def _load_segmentation_dict(state):
+    masks = state["masks"]
+
+    layout_dict = state["layout"]
+    node_types = layout_dict['node_types']
+    edges = layout_dict['edges']
+    layout = into_layout_unchecked(node_types, edges)
+
+    return layout, masks
