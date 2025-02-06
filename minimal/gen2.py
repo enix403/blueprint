@@ -194,3 +194,7 @@ def run_model(
 
     return masks
 
+# ------------
+
+def _save_segmentation(layout, masks):
+    pass
