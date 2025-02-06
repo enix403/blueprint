@@ -9,6 +9,10 @@ class InputLayout:
     node_types: list[int]
     edges: list[tuple[int, int]]
 
+    def num_rooms(self):
+        # TODO: need to optimize ?
+        return len(list(filter(NodeType.is_room, self.node_types)))
+
     def draw(self):
         G = attr_graph_to_nx(
             self.node_types,
