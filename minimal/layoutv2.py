@@ -78,15 +78,7 @@ def _ensure_front_door(G: nx.Graph):
         G.add_edge(next_node, min_node)
 
 
-def _build_clean_layout_graph(node_types, edges):
-    G = nx.Graph()
-
-    G.add_nodes_from([
-        (i, { "node_type": n })
-        for i, n in enumerate(node_types)
-    ])
-    G.add_edges_from(edges)
-
+def _clean_layout_graph(G: nx.Graph):
     # remove invalid nodes
     G.remove_nodes_from([
         node
@@ -97,25 +89,32 @@ def _build_clean_layout_graph(node_types, edges):
         )
     ])
 
-    # keep the largest component
-    G = G.subgraph(max(
-        nx.connected_components(G), key=len)).copy()
+    # keep the largest component, discard rest
+    comps = sorted(nx.connected_components(G), key=len, reverse=True)
+    G.remove_nodes_from(comps[1:])
 
     if len(G) == 0:
         raise Exception("Empty input graph")
 
     _ensure_front_door(G)
 
-    return G
-
 
 def into_layout(node_types, edges):
-    G = _build_clean_layout_graph(node_types, edges)
+    # Convert this flat structure into a nx.Graph
+    G = attr_graph_to_nx(node_types, edges, 'node_type')
 
+    # Validate and clean the graph
+    _clean_layout_graph(G)
+
+    # Convert the graph back to flat lists
     node_types, edges = flatten_nx_graph(
         G,
         select_key='node_type',
         sort_key='node_type'
     )
 
+    return InputLayout(node_types, edges)
+
+
+def into_layout_unchecked(node_types, edges):
     return InputLayout(node_types, edges)
