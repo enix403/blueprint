@@ -4,7 +4,6 @@ import networkx as nx
 from minimal.layout import NodeType, NODE_COLOR, NODE_NAME
 from minimal.common import flatten_nx_graph, attr_graph_to_nx
 
-# Immutable
 @dataclass(frozen=True)
 class InputLayout:
     node_types: list[int]
@@ -78,7 +77,8 @@ def _ensure_front_door(G: nx.Graph):
         G.add_node(next_node, node_type=NodeType.FRONT_DOOR)
         G.add_edge(next_node, min_node)
 
-def into_layout(node_types, edges):
+
+def _build_clean_layout_graph(node_types, edges):
     G = nx.Graph()
 
     G.add_nodes_from([
@@ -106,6 +106,12 @@ def into_layout(node_types, edges):
 
     _ensure_front_door(G)
 
+    return G
+
+
+def into_layout(node_types, edges):
+    G = _build_clean_layout_graph(node_types, edges)
+
     node_types, edges = flatten_nx_graph(
         G,
         select_key='node_type',
@@ -113,25 +119,3 @@ def into_layout(node_types, edges):
     )
 
     return InputLayout(node_types, edges)
-
-
-"""
-class InputGraph:
-
-    
-    def __repr__(self):
-        return f"InputGraph(...)"
-
-# ---------
-
-def user_input(node_types: list[int], edges: list[tuple[int, int]]):
-    graph = InputGraph(node_types, edges)
-
-    # Make sure that there is a frontdoor
-    graph.ensure_front_door()
-
-    # WITHOUT INTERIOR DOORS (ofc)
-    graph.draw()
-
-    return graph
-"""
