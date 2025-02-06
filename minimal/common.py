@@ -47,7 +47,7 @@ def flatten_nx_graph(
     G = nx.relabel_nodes(
         G,
         mapping={ n: i for i, n in enumerate(nodes) },
-        copy=False
+        copy=True
     )
 
     edges = list(G.edges)

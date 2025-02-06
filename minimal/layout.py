@@ -1,3 +1,5 @@
+from typing import Union
+
 from dataclasses import dataclass
 import networkx as nx
 
@@ -203,3 +205,53 @@ def into_layout(node_types, edges):
 
 def into_layout_unchecked(node_types, edges):
     return InputLayout(node_types, edges)
+
+# --------------------------------
+
+class InputLayoutBuilderNode:
+    type: int
+
+    def __init__(self, type: int):
+        self.type = type
+        self.index = -1
+
+
+class InputLayoutBuilder:
+    nodes: list[InputLayoutBuilderNode]
+    edges: list[tuple[InputLayoutBuilderNode, InputLayoutBuilderNode]]
+
+    def __init__(self):
+        self.nodes = []
+        self.edges = []
+
+    def add_node(self, type):
+        node = InputLayoutBuilderNode(type)
+        self.nodes.append(node)
+        return node
+
+    def add_edge(
+        self,
+        a: Union[InputLayoutBuilderNode, int],
+        b: Union[InputLayoutBuilderNode, int],
+    ):
+        if isinstance(a, int):
+            a = self.add_node(a)
+
+        if isinstance(b, int):
+            b = self.add_node(b)
+
+        self.edges.append((a, b))
+
+        return (a, b)
+
+
+    def build(self) -> InputLayout:
+        for i, node in enumerate(self.nodes):
+            node.index = i
+
+        return into_layout(
+            list(map(lambda node: node.type, self.nodes)),
+            list(map(lambda e: (e[0].index, e[1].index), self.edges))
+        )
+
+
