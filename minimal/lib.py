@@ -6,6 +6,16 @@ from minimal.rooms import calc_min_area, RectGraph, scale_room_masks
 from minimal.walls import create_sep_mask, scale_sep_mask, extract_face_walls, all_wall_runs
 from minimal.join_solving import select_rooms_to_join
 from minimal.doors import create_doors
+from minimal.walls import (
+    CC_T,
+    CC_R,
+    CC_B,
+    CC_L,
+    CC_TL,
+    CC_TR,
+    CC_BR,
+    CC_BL,
+)
 
 # Step 1: Generate basic segmentation masks per room
 def gen_segmentation_mask(layout: InputLayout):
@@ -68,8 +78,14 @@ def assemble_plan(layout: InputLayout, masks: torch.tensor, scale: tuple[int, in
     # ======= Process Walls =======
     # =============================
 
+    wall_runs = all_wall_runs([
+        ((sep_mask & CC_T) | (sep_mask == CC_TR) | (sep_mask == CC_TL)).bool(),
+        ((sep_mask & CC_R) | (sep_mask == CC_TR) | (sep_mask == CC_BR)).bool(),
+        ((sep_mask & CC_B) | (sep_mask == CC_BR) | (sep_mask == CC_BL)).bool(),
+        ((sep_mask & CC_L) | (sep_mask == CC_TL) | (sep_mask == CC_BL)).bool(),
+    ])
+
     face_walls = extract_face_walls(sep_mask)
-    wall_runs = all_wall_runs(face_walls)
 
     # =============================
     # ======== Place Doors ========
@@ -78,4 +94,4 @@ def assemble_plan(layout: InputLayout, masks: torch.tensor, scale: tuple[int, in
     rooms_to_join = select_rooms_to_join(rect_graphs, layout)
     doors = create_doors(R, rooms_to_join, room_masks, face_walls)
 
-    return rect_graphs, wall_runs, doors
+    return rect_graphs, wall_runs, doors, sep_mask
