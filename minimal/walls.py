@@ -164,7 +164,7 @@ def all_wall_runs(face_walls):
 
         runs = _extract_walls_runs(lx, ly)
 
-        if transpose:
+        if not transpose:
             all_runs.extend((y, x, len, orient) for (x, y, len) in runs)
         else:
             all_runs.extend((x, y, len, orient) for (x, y, len) in runs)
