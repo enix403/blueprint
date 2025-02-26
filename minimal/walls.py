@@ -112,3 +112,61 @@ def extract_face_walls(sep_mask):
     )
 
     return [up_walls, right_walls, down_walls, left_walls]
+
+# -----------------------------
+
+def _extract_walls_runs(lx, ly, min_len: int=1):
+
+    # lx, idx = torch.sort(lx)
+    # ly = ly[idx]
+
+    runs = []
+
+    prev_x = lx[0]
+    prev_y = ly[0]
+    cur_len = 1
+
+    for x, y in zip(lx[1:], ly[1:]):
+        if x - prev_x != 1 or y != prev_y:
+            if cur_len >= min_len:
+                runs.append((1 + prev_x.item() - cur_len, prev_y.item(), cur_len))
+            cur_len = 1
+        else:
+            cur_len += 1
+
+        prev_x = x
+        prev_y = y
+
+    if cur_len >= min_len:
+        runs.append((1 + prev_x.item() - cur_len, prev_y.item(), cur_len))
+
+    return runs
+
+# -----------------------------
+
+def all_wall_runs(face_walls):
+
+    all_runs = []
+
+    for i, fw in enumerate(face_walls):
+        transpose = i == 1 or i == 3
+        orient = "v" if transpose else "h"
+
+        ws = fw
+        if transpose:
+            ws = ws.T
+
+        lx, ly = torch.where(ws > 0)
+        lx, ly = ly, lx
+
+        if len(lx) == 0:
+            continue
+
+        runs = _extract_walls_runs(lx, ly)
+
+        if transpose:
+            all_runs.extend((y, x, len, orient) for (x, y, len) in runs)
+        else:
+            all_runs.extend((x, y, len, orient) for (x, y, len) in runs)
+
+    return all_runs

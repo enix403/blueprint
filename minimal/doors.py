@@ -2,39 +2,14 @@ import random
 import torch
 
 from minimal.common import conv_mask
+from minimal.walls import _extract_walls_runs
 
 DOOR_LENGTH = 10
 
 # --------------------
 
-
-def _extract_walls_runs(lx, ly, min_len: int = DOOR_LENGTH):
-
-    lx, idx = torch.sort(lx)
-    ly = ly[idx]
-
-    runs = []
-
-    prev_x = lx[0]
-    prev_y = ly[0]
-    cur_len = 1
-
-    for x, y in zip(lx[1:], ly[1:]):
-        if x - prev_x != 1 or y != prev_y:
-            if cur_len >= min_len:
-                runs.append((1 + prev_x.item() - cur_len, prev_y.item(), cur_len))
-            cur_len = 1
-        else:
-            cur_len += 1
-
-        prev_x = x
-        prev_y = y
-
-    if cur_len >= min_len:
-        runs.append((1 + prev_x.item() - cur_len, prev_y.item(), cur_len))
-
-    return runs
-
+def _extract_walls_runs_for_doors(lx, ly):
+    return _extract_walls_runs(lx, ly, min_len=DOOR_LENGTH)
 
 # --------------------
 
@@ -54,8 +29,7 @@ def _restrict_touching(room_masks, ra, rb):
     return (conv_mask(col_mask, _res_kernel) == 0).byte()
 
 
-# --------------------
-
+# ---------------
 
 # wall runs that can be cut between room ra and rb
 # 0 based indexes
@@ -85,7 +59,7 @@ def _candidate_wall_runs(face_walls, room_masks, ra, rb):
         if transpose:
             lx, ly = ly, lx
 
-        runs = _extract_walls_runs(lx, ly)
+        runs = _extract_walls_runs_for_doors(lx, ly)
 
         if transpose:
             all_runs.extend((y, x, len, orient) for (x, y, len) in runs)

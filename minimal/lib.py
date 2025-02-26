@@ -3,7 +3,7 @@ import torch
 from minimal.gen import run_model
 from minimal.layout import InputLayout, NodeType, NODE_COLOR
 from minimal.rooms import calc_min_area, RectGraph, scale_room_masks
-from minimal.walls import create_sep_mask, scale_sep_mask, extract_face_walls
+from minimal.walls import create_sep_mask, scale_sep_mask, extract_face_walls, all_wall_runs
 from minimal.join_solving import select_rooms_to_join
 from minimal.doors import create_doors
 
@@ -65,12 +65,17 @@ def assemble_plan(layout: InputLayout, masks: torch.tensor, scale: tuple[int, in
     sep_mask = scale_sep_mask(sep_mask, *scale)
 
     # =============================
-    # ======== Place Doors ========
+    # ======= Process Walls =======
     # =============================
 
     face_walls = extract_face_walls(sep_mask)
+    wall_runs = all_wall_runs(face_walls)
+
+    # =============================
+    # ======== Place Doors ========
+    # =============================
 
     rooms_to_join = select_rooms_to_join(rect_graphs, layout)
     doors = create_doors(R, rooms_to_join, room_masks, face_walls)
 
-    return rect_graphs, sep_mask, doors
+    return rect_graphs, wall_runs, doors
