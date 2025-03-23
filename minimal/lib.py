@@ -95,3 +95,28 @@ def assemble_plan(layout: InputLayout, masks: torch.tensor, scale: tuple[int, in
     doors = create_doors(R, rooms_to_join, room_masks, face_walls)
 
     return rect_graphs, wall_runs, doors, sep_mask
+
+
+def generate_plan(layout, scale):
+    masks = gen_segmentation_mask(layout)
+    rect_graphs, wall_runs, doors, sep_mask = assemble_plan(layout, masks, scale)
+
+    walls = create_cut_wall_mask(sep_mask, doors)
+
+    rooms_encoded = []
+    for i, r in enumerate(rect_graphs):
+        room_data = [r.room_type]
+        for _, d in r.rects_graph.nodes(data=True):
+            room_data.extend(d['xywh'])
+
+        rooms_encoded.append(room_data)
+
+    plan_dict = {
+        'shape': tuple(sep_mask.shape),
+        'scale': scale,
+        "rooms": rooms_encoded,
+        "walls": wall_runs,
+        "doors": doors
+    }
+
+    return plan_dict
