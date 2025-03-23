@@ -1,7 +1,7 @@
 import torch
 
 from minimal.gen import run_model
-from minimal.layout import InputLayout, NodeType, NODE_COLOR
+from minimal.layout import InputLayout, NodeType, NODE_COLOR, into_layout
 from minimal.rooms import calc_min_area, RectGraph, scale_room_masks
 from minimal.walls import create_sep_mask, scale_sep_mask, extract_face_walls, all_wall_runs
 from minimal.join_solving import select_rooms_to_join
@@ -98,7 +98,7 @@ def assemble_plan(layout: InputLayout, masks: torch.tensor, scale: tuple[int, in
 
 
 def generate_plan(node_types, edges, scale):
-    layout = InputLayout(node_types, edges)
+    layout = into_layout(node_types, edges)
     print(repr(layout))
     masks = gen_segmentation_mask(layout)
     rect_graphs, wall_runs, doors, sep_mask = assemble_plan(layout, masks, scale)
