@@ -97,11 +97,11 @@ def assemble_plan(layout: InputLayout, masks: torch.tensor, scale: tuple[int, in
     return rect_graphs, wall_runs, doors, sep_mask
 
 
-def generate_plan(layout, scale):
+def generate_plan(node_types, edges, scale):
+    layout = InputLayout(node_types, edges)
+    print(repr(layout))
     masks = gen_segmentation_mask(layout)
     rect_graphs, wall_runs, doors, sep_mask = assemble_plan(layout, masks, scale)
-
-    walls = create_cut_wall_mask(sep_mask, doors)
 
     rooms_encoded = []
     for i, r in enumerate(rect_graphs):

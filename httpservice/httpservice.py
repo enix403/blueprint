@@ -6,12 +6,9 @@ from flask import Flask, request, jsonify
 # set path to import minimal
 import sys
 from pathlib import Path
-sys.path.insert(0, Path(__file__).parent.parent)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-def generate_plan(nodes, edges, scale):
-    import time
-    time.sleep(5)
-    return {"status": "success", "nodes": nodes, "edges": edges, "scale": scale}
+from minimal.lib import generate_plan
 
 app = Flask(__name__)
 executor = ThreadPoolExecutor(max_workers=4)
@@ -23,13 +20,14 @@ task_lock = threading.Lock()
 def generate():
     try:
         data = request.get_json()
-        nodes = data.get("nodes", [])
+        node_types = data.get("node_types", [])
         edges = data.get("edges", [])
+        edges = list(map(tuple, edges))
         scale = tuple(data.get("scale", ()))
         
         task_id = threading.get_ident()
         
-        future = executor.submit(generate_plan, nodes, edges, scale)
+        future = executor.submit(generate_plan, node_types, edges, scale)
         
         with task_lock:
             tasks[task_id] = future
@@ -38,7 +36,8 @@ def generate():
         return jsonify(result)
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise e
+        # return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=3002)
