@@ -103,9 +103,13 @@ def generate_plan(node_types, edges, scale):
     masks = gen_segmentation_mask(layout)
     rect_graphs, wall_runs, doors, sep_mask = assemble_plan(layout, masks, scale)
 
+    # Sort the graphs back in the original order
+    rect_graphs.sort(key=lambda g: g.room_node_index)
+
     rooms_encoded = []
     for i, r in enumerate(rect_graphs):
-        room_data = [r.room_type]
+        src_index = layout.node_labels[i]
+        room_data = [r.room_type, src_index]
         for _, d in r.rects_graph.nodes(data=True):
             room_data.extend(d['xywh'])
 

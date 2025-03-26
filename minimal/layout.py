@@ -93,6 +93,9 @@ class InputLayout:
     node_types: list[int]
     edges: list[tuple[int, int]]
 
+    # TODO: refactor structure
+    node_labels: list[int] = None
+
     def num_rooms(self):
         # TODO: need to optimize ?
         return len(list(filter(NodeType.is_room, self.node_types)))
@@ -187,15 +190,19 @@ def into_layout(node_types, edges):
     _clean_layout_graph(G)
 
     # Convert the graph back to flat lists
-    node_types, edges = flatten_nx_graph(
+    node_types, edges, node_labels = flatten_nx_graph(
         G, select_key="node_type", sort_key="node_type"
     )
 
-    return InputLayout(node_types, edges)
+    layout = InputLayout(node_types, edges, node_labels)
+
+    return layout
 
 
 def into_layout_unchecked(node_types, edges):
-    return InputLayout(node_types, edges)
+    node_labels = list(range(len(node_types)))
+    layout = InputLayout(node_types, edges, node_labels)
+    return layout
 
 
 # --------------------------------
