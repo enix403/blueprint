@@ -34,11 +34,11 @@ def attr_graph_to_nx(node_attrs, edges, attr_key: str):
 
 
 def flatten_nx_graph(G, select_key: str, sort_key: str, reverse: bool = False):
-    node_labels = sorted(G.nodes, key=lambda n: G.nodes[n][sort_key], reverse=reverse)
-    node_keys = [G.nodes[n][select_key] for n in node_labels]
+    nodes = sorted(G.nodes, key=lambda n: G.nodes[n][sort_key], reverse=reverse)
+    node_keys = [G.nodes[n][select_key] for n in nodes]
 
-    G = nx.relabel_nodes(G, mapping={n: i for i, n in enumerate(node_labels)}, copy=True)
+    G = nx.relabel_nodes(G, mapping={n: i for i, n in enumerate(nodes)}, copy=True)
 
     edges = list(G.edges)
 
-    return node_keys, edges, node_labels
+    return node_keys, edges
