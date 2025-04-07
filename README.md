@@ -1,10 +1,12 @@
-# Blueprint Microservice
+# 📘 Blueprint
 
 Blueprint is a Python microservice that provides inference capabilities to the FrameCraft REST API. It runs as a lightweight HTTP service using Flask and Gunicorn.
 
 ---
 
 ## 🚀 Getting Started
+
+> Make sure you are using Python `3.9.x`. Newer versions are currently not supported. The project is tested on Python `3.9.21`
 
 ### 1. Set up a virtual environment
 
@@ -34,3 +36,7 @@ pip install -r requirements.txt
   ```
 
 The service will be accessible at [http://localhost:3002](http://localhost:3002)
+
+## 📝 Notes
+
+- Ensure system dependencies like `gcc`, `graphviz`, and `libgraphviz-dev` are installed if you're running it outside the container and `pygraphviz` fails to build.
