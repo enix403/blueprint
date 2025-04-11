@@ -24,20 +24,24 @@ def generate():
         edges = data.get("edges", [])
         edges = list(map(tuple, edges))
         scale = tuple(data.get("scale", ()))
-        
+
         task_id = threading.get_ident()
-        
+
         future = executor.submit(generate_plan, node_types, edges, scale)
-        
+
         with task_lock:
             tasks[task_id] = future
-        
+
         result = future.result()
         return jsonify(result)
-        
+
     except Exception as e:
         raise e
         # return jsonify({"error": str(e)}), 500
+
+@app.route('/healthcheck', methods=['GET'])
+def healthcheck():
+    return jsonify(status="ok"), 200
 
 if __name__ == "__main__":
     app.run(debug=True, port=3002)
