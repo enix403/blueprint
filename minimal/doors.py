@@ -3,6 +3,8 @@ import torch
 
 from minimal.common import conv_mask
 from minimal.walls import _extract_walls_runs
+from minimal.layout import InputLayout, NodeType
+from minimal.rooms import RectGraph
 
 DOOR_LENGTH = 10
 
@@ -102,6 +104,22 @@ def _select_segment_from_run(run):
     return (x, y, DOOR_LENGTH, orient)
 
 
+def create_door(
+    face_walls,
+    room_a_mask,
+    room_b_mask
+):
+    cruns = _candidate_wall_runs(face_walls, room_a_mask, room_b_mask)
+
+    if len(cruns) == 0:
+        return None
+
+    # print(cruns)
+    run = cruns[0]
+    door = _select_segment_from_run(run)
+    return door
+
+
 def create_doors(
     rooms_to_join,
     room_masks,
@@ -116,19 +134,49 @@ def create_doors(
         room_a_mask = room_masks[ra - 1]
         room_b_mask = room_masks[rb - 1]
 
-        cruns = _candidate_wall_runs(face_walls, room_a_mask, room_b_mask)
+        door = create_door(face_walls, room_a_mask, room_b_mask)
 
-        if len(cruns) == 0:
+        if door is None:
             print(f"Unable to allocate door between {ra} and {rb}")
             continue
 
-        # print(cruns)
-        run = cruns[0]
-        door = _select_segment_from_run(run)
         doors.append(door)
 
     return doors
 
+
+def create_front_door(
+    rooms: list[RectGraph],
+    layout: InputLayout
+):
+    # Get a list of rooms that need a front door
+    # TODO: Optimize
+    front_rooms_idx_layout = set()
+    for i, node_type in enumerate(layout.node_types):
+        if node_type == NodeType.FRONT_DOOR:
+            # Loop through all the edges (unoptimized)
+            # To find all rooms that are connected to
+            # this frontdoor
+            for edge in layout.edges:
+                if edge[0] == i:
+                    front_rooms_idx_layout.add(edge[1])
+                elif edge[1] == i:
+                    front_rooms_idx_layout.add(edge[0])
+
+    # Find the corresponding indices in the `rooms` array
+    front_rooms_idx = set()
+    for i, room in enumerate(rooms):
+        if room.room_node_index in front_rooms_idx_layout:
+            front_rooms_idx.add(i)
+
+    outside_mask = None
+    for room in rooms:
+        if outside_mask is None:
+            outside_mask = room.to_mask()
+        else:
+            outside_mask += room.to_mask()
+
+    return outside_mask
 
 # -----------------
 # -----------------
