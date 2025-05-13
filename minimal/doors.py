@@ -8,10 +8,12 @@ DOOR_LENGTH = 10
 
 # --------------------
 
+
 def _extract_walls_runs_for_doors(lx, ly):
     return _extract_walls_runs(lx, ly, min_len=DOOR_LENGTH)
 
-# --------------------
+# -------------------
+
 
 _res_kernel = torch.tensor(
     [
@@ -23,28 +25,42 @@ _res_kernel = torch.tensor(
 )
 
 
-# Keep walls that connect room ra to rb only and none else
-def _restrict_touching(room_masks, ra, rb):
-    col_mask = (1 - room_masks[ra]) * (1 - room_masks[rb])
-    return (conv_mask(col_mask, _res_kernel) == 0).byte()
+def _restrict_touching(room_a_mask, room_b_mask):
+    """
+    For every edge of the two rooms, only selects those edges
+    that are touching the other room. Note that this may also
+    select some other inner cells of both rooms are well. It
+    is recommended to select cells only from one of the given
+    rooms (e.g by multiplying with room_a_mask) and also discarding
+    non-edge cells (e.g by multiplying with a walls mask)
+    """
 
+    # This is a mask containing the area outside both of
+    # the rooms
+    outside_mask = (1 - room_a_mask) * (1 - room_b_mask)
+
+    # TODO: if it is guranteed that the two rooms are non-overlapping, then
+    # the above can be simplified to
+    #       outside_mask = 1 - (room_a_mask + room_b_mask)
+
+    return (conv_mask(outside_mask, _res_kernel) == 0).byte()
 
 # ---------------
 
-# wall runs that can be cut between room ra and rb
-# 0 based indexes
-def _candidate_wall_runs(face_walls, room_masks, ra, rb):
 
-    # Keep ra > rb
-    if ra < rb:
-        ra, rb = rb, ra
-
+def _candidate_wall_runs(
+    face_walls,
+    room_a_mask,
+    room_b_mask
+) -> list[tuple[int, int, int, str]]:
+    """
+    Calculates wall runs that can be cut between the two rooms.
+    The wall runs are placed on the first room i.e room_a_mask 
+    """
     all_runs = []
 
-    ra_mask = room_masks[ra]
-
     for i, fw in enumerate(face_walls):
-        ws = fw * ra_mask * _restrict_touching(room_masks, ra, rb)
+        ws = fw * room_a_mask * _restrict_touching(room_a_mask, room_b_mask)
 
         # ------
 
@@ -68,7 +84,6 @@ def _candidate_wall_runs(face_walls, room_masks, ra, rb):
 
     return all_runs
 
-
 # -----------------
 
 
@@ -88,7 +103,6 @@ def _select_segment_from_run(run):
 
 
 def create_doors(
-    R,
     rooms_to_join,
     room_masks,
     face_walls,
@@ -96,7 +110,13 @@ def create_doors(
     doors = []
 
     for ra, rb in rooms_to_join:
-        cruns = _candidate_wall_runs(face_walls, room_masks, ra - 1, rb - 1)
+        if ra < rb:
+            ra, rb = rb, ra
+
+        room_a_mask = room_masks[ra - 1]
+        room_b_mask = room_masks[rb - 1]
+
+        cruns = _candidate_wall_runs(face_walls, room_a_mask, room_b_mask)
 
         if len(cruns) == 0:
             print(f"Unable to allocate door between {ra} and {rb}")
@@ -115,7 +135,6 @@ def create_doors(
 # -----------------
 # -----------------
 # -----------------
-
 
 def create_cut_wall_mask(wall_mask, doors: list[tuple]):
     walls = (wall_mask > 0).byte()
