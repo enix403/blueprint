@@ -1,5 +1,7 @@
 import random
 import torch
+import cv2
+import numpy as np
 
 from minimal.common import conv_mask
 from minimal.walls import _extract_walls_runs
@@ -144,10 +146,87 @@ def create_doors(
 
     return doors
 
+# ------------
+
+
+def _remove_inner_with_cv2(x: torch.Tensor) -> torch.Tensor:
+    """
+    x: 2D torch.uint8 tensor containing only 0s and 1s
+    returns: same shape tensor where only the 1-regions connected to the border remain
+    """
+    # 1. Move to CPU & numpy
+    arr = x.cpu().numpy()
+
+    # 2. Label all 4-connected components in one pass (C speed!)
+    #    background=0, labels ∈ {0..num_labels-1}
+    num_labels, labels = cv2.connectedComponents(arr, connectivity=4)
+
+    # 3. Find which labels touch any edge
+    edge_labels = set()
+    edge_labels.update(np.unique(labels[0, :]))      # top row
+    edge_labels.update(np.unique(labels[-1, :]))      # bottom row
+    edge_labels.update(np.unique(labels[:,  0]))      # left  col
+    edge_labels.update(np.unique(labels[:, -1]))      # right col
+
+    # 4. Build mask of “keep” pixels
+    keep = np.zeros_like(arr, dtype=np.uint8)
+    for lbl in edge_labels:
+        if lbl != 0:  # skip background
+            keep[labels == lbl] = 1
+
+    # 5. Back to torch (on original device)
+    return torch.from_numpy(keep).to(x.device).to(torch.uint8)
+
+
+def _remove_inner_with_dilation(x: torch.Tensor) -> torch.Tensor:
+    """
+    x: 2D torch.uint8 tensor of 0/1 on either CPU or CUDA
+    returns: same shape torch.uint8 where only border-connected 1s remain
+    """
+    # mask of “reachable” starts with just the 1s on the border
+    reachable = torch.zeros_like(x, dtype=torch.bool)
+    H, W = x.shape
+    b = reachable
+
+    # mark border 1s
+    b[0, :] |= (x[0, :] == 1)
+    b[-1, :] |= (x[-1, :] == 1)
+    b[:,  0] |= (x[:,  0] == 1)
+    b[:, -1] |= (x[:, -1] == 1)
+
+    # 4-neighbour kernel: up/down/left/right
+    kernel = torch.tensor([[0, 1, 0],
+                           [1, 0, 1],
+                           [0, 1, 0]],
+                          dtype=torch.float32,
+                          device=x.device).unsqueeze(0).unsqueeze(0)
+
+    # iterative dilation until no more growth
+    prev_nnz = -1
+    while True:
+        # convolve to see where any neighbour is reachable
+        # (we convert bool→float so conv2d will work)
+        nbrs = F.conv2d(b.float().unsqueeze(0).unsqueeze(0),
+                        kernel, padding=1).squeeze(0).squeeze(0)
+        # any location that had at least one reachable neighbour
+        # and is itself a 1 in x becomes reachable
+        b_new = b | ((nbrs > 0) & (x == 1))
+
+        nnz = int(b_new.sum())
+        if nnz == prev_nnz:
+            break
+        prev_nnz = nnz
+        b = b_new
+
+    # mask out all unreachable 1s
+    return (b.to(torch.uint8) * x)
+
 
 def _remove_inner_holes(mask: torch.tensor):
-    # TODO: implement
-    pass
+    return _remove_inner_with_cv2(mask)
+    # or
+    # return _remove_inner_with_dilation(mask)
+
 
 def create_front_doors(
     face_walls,
@@ -179,7 +258,7 @@ def create_front_doors(
     outside_mask = None
     for mask in room_masks:
         if outside_mask is None:
-            outside_mask = mask
+            outside_mask = mask.clone()
         else:
             outside_mask += mask
 
@@ -188,7 +267,7 @@ def create_front_doors(
     # A plan may have some "holes" in its interior.
     # These must be removed since a frontdoor cannot
     # be placed there
-    _remove_inner_holes(outside_mask)
+    outside_mask = _remove_inner_holes(outside_mask)
 
     front_doors = []
 
@@ -207,6 +286,7 @@ def create_front_doors(
 # -----------------
 # -----------------
 # -----------------
+
 
 def create_cut_wall_mask(wall_mask, doors: list[tuple]):
     walls = (wall_mask > 0).byte()
