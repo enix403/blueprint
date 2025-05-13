@@ -145,8 +145,14 @@ def create_doors(
     return doors
 
 
-def create_front_door(
+def _remove_inner_holes(mask: torch.tensor):
+    # TODO: implement
+    pass
+
+def create_front_doors(
+    face_walls,
     rooms: list[RectGraph],
+    room_masks: list[torch.tensor],
     layout: InputLayout
 ):
     # Get a list of rooms that need a front door
@@ -169,14 +175,32 @@ def create_front_door(
         if room.room_node_index in front_rooms_idx_layout:
             front_rooms_idx.add(i)
 
+    # Mask containing the area not spanned by any room
     outside_mask = None
-    for room in rooms:
+    for mask in room_masks:
         if outside_mask is None:
-            outside_mask = room.to_mask()
+            outside_mask = mask
         else:
-            outside_mask += room.to_mask()
+            outside_mask += mask
 
-    return outside_mask
+    outside_mask = 1 - outside_mask
+
+    # A plan may have some "holes" in its interior.
+    # These must be removed since a frontdoor cannot
+    # be placed there
+    _remove_inner_holes(outside_mask)
+
+    front_doors = []
+
+    for i in front_rooms_idx:
+        room_a_mask = room_masks[i]
+        door = create_door(face_walls, room_a_mask, outside_mask)
+        if door is None:
+            print(f"Unable to allocate front door foor room {i}")
+            continue
+        front_doors.append(door)
+
+    return front_doors
 
 # -----------------
 # -----------------
