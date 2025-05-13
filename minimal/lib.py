@@ -92,7 +92,8 @@ def assemble_plan(layout: InputLayout, masks: torch.tensor, scale: tuple[int, in
     # =============================
 
     rooms_to_join = select_rooms_to_join(rect_graphs, layout)
-    doors = create_doors(R, rooms_to_join, room_masks, face_walls)
+    doors = (create_doors(R, rooms_to_join, room_masks, face_walls)
+            + create_front_doors(face_walls, rect_graphs, room_masks, layout))
 
     return rect_graphs, wall_runs, doors, sep_mask
 
