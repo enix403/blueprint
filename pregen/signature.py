@@ -48,10 +48,13 @@ def find_closest_graph(query, min_similarity=0.25):
     if sig in signature_to_graph:
         return signature_to_graph[sig]  # 🎯 Exact match
 
+    num_query_nodes = len(query.node_types)
     # Otherwise, search all graphs by GED (expensive)
     best_graph = None
     best_score = -1
     for g in premade_graphs:
+        if len(g.node_types) != num_query_nodes:
+            continue
         sim = graph_similarity(query, g)
         if sim > best_score:
             best_score = sim
