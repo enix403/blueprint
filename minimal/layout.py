@@ -176,6 +176,7 @@ def _clean_layout_graph(G: nx.Graph):
     comps = sorted(nx.connected_components(G), key=len, reverse=True)
     G.remove_nodes_from(comps[1:])
 
+    # TODO: handle this gracefully
     if len(G) == 0:
         raise Exception("Empty input graph")
 
