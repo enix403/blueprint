@@ -43,7 +43,7 @@ def graph_similarity(query, other):
     return 1 / (1 + dist)  # Convert distance to similarity
 
 
-def find_closest_graph(query):
+def find_closest_graph(query, min_similarity=0.25):
     sig = canonical_graph_signature(query)
     if sig in signature_to_graph:
         return signature_to_graph[sig]  # 🎯 Exact match
@@ -56,13 +56,12 @@ def find_closest_graph(query):
         if sim > best_score:
             best_score = sim
             best_graph = g
+
+    if best_score < min_similarity:
+        return None
+
     return best_graph
 
-
-# def graph_folder_name(graph) -> str:
-#     sig = canonical_graph_signature(graph)
-#     full_hash = hashlib.sha256(sig.encode()).hexdigest()
-#     return full_hash[:20]
 
 def graph_folder_name(graph) -> str:
     # Node types (already sorted in definition)
