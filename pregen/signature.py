@@ -1,8 +1,12 @@
 import hashlib
 from datasketch import MinHash, MinHashLSH
 
-def minhash_for_graph(graph, num_perm=128) -> MinHash:
-    m = MinHash(num_perm=num_perm)
+from .premade import premade_graphs
+
+NUM_PERMS = 256
+
+def minhash_for_graph(graph) -> MinHash:
+    m = MinHash(num_perm=NUM_PERMS)
 
     # Encode node types
     for i, t in enumerate(graph.node_types):
@@ -51,13 +55,12 @@ for i, graph in enumerate(premade_graphs):
     sig = canonical_graph_signature(graph)
     signature_to_graph[sig] = graph
 
-num_perm = 128
-lsh = MinHashLSH(threshold=0.8, num_perm=num_perm)
+lsh = MinHashLSH(threshold=0.4, num_perm=NUM_PERMS)
 
 graph_index = []  # Keep for lookup
 
 for idx, graph in enumerate(premade_graphs):
-    mh = minhash_for_graph(graph, num_perm)
+    mh = minhash_for_graph(graph)
     lsh.insert(f"graph_{idx}", mh)
     graph_index.append(graph)
 
@@ -67,7 +70,7 @@ def find_closest_graph(query):
     if sig in signature_to_graph:
         return signature_to_graph[sig]  # 🎯 Exact match
 
-    query_mh = minhash_for_graph(query, num_perm)
+    query_mh = minhash_for_graph(query)
     candidates = lsh.query(query_mh)
 
     if not candidates:
