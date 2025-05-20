@@ -59,7 +59,21 @@ def find_closest_graph(query):
     return best_graph
 
 
+# def graph_folder_name(graph) -> str:
+#     sig = canonical_graph_signature(graph)
+#     full_hash = hashlib.sha256(sig.encode()).hexdigest()
+#     return full_hash[:20]
+
 def graph_folder_name(graph) -> str:
-    sig = canonical_graph_signature(graph)
+    # Node types (already sorted in definition)
+    node_part = ','.join(map(str, graph.node_types))
+
+    # Edges as unordered sets, then sorted
+    edge_part = ','.join(
+        f"{min(u, v)}-{max(u, v)}" for u, v in sorted(map(lambda e: (min(e), max(e)), graph.edges))
+    )
+
+    sig = f"nodes:{node_part}|edges:{edge_part}"
+
     full_hash = hashlib.sha256(sig.encode()).hexdigest()
     return full_hash[:20]
