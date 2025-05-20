@@ -9,7 +9,7 @@ from minimal.walls import CC_TL, CC_TR, CC_BR, CC_BL, CC_T, CC_R, CC_B, CC_L
 def draw_plan(
     masks,  # torch.tensor of size (R, 64, 64) (torch.float32)
     nodes,  # list[int] of length R
-    img_size=256,
+    img_size=256
 ):
     plan_img = Image.new("RGB", (64, 64), (255, 255, 255))
     draw = ImageDraw.Draw(plan_img)

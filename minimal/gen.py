@@ -172,6 +172,8 @@ def run_model(
     # Generate initial mask
     masks = _predict_masks(nodes_enc, edges_enc, prev_masks=None, idx_fixed=[])
 
+    num_iters = min(num_iters, len(unique_nodes))
+
     for i in range(num_iters):
         fixed_nodes = unique_nodes[:i]
 

@@ -1,3 +1,8 @@
+from pathlib import Path
+import json
+import random
+import time
+
 import torch
 
 from minimal.gen import run_model
@@ -16,6 +21,8 @@ from minimal.walls import (
     CC_BR,
     CC_BL,
 )
+
+from pregen.signature import find_closest_graph, graph_folder_name
 
 # Step 1: Generate basic segmentation masks per room
 def gen_segmentation_mask(layout: InputLayout):
@@ -100,10 +107,42 @@ def assemble_plan(layout: InputLayout, masks: torch.tensor, scale: tuple[int, in
     return rect_graphs, wall_runs, doors, sep_mask
 
 
-def generate_plan(node_types, edges, scale):
+def generate_plan(
+    node_types,
+    edges,
+    scale
+):
     layout = into_layout(node_types, edges)
-    print(repr(layout))
-    masks = gen_segmentation_mask(layout)
+
+    # ======== LIBRARY LOOKUP ========
+    closest = find_closest_graph(layout)
+
+    if closest is not None:
+        # both graphs have the same node count, and almost always
+        # copying over the node_labels will be okay
+        layout = InputLayout(
+            closest.node_types,
+            closest.edges,
+            closest.node_labels
+        )
+        print(repr(layout))
+        time.sleep(16)
+
+        folder = Path(__file__).parent.parent / "plibrary" / graph_folder_name(layout)
+        meta_path = folder / "meta.json"
+        with open(meta_path) as f:
+            meta = json.load(f)
+
+        count = meta['count']
+        i = random.randint(1, count)
+        filepath = folder / f"{i}.pth"
+        masks = torch.load(filepath)
+
+    # ======== /LIBRARY LOOKUP ========
+    else:
+        print(repr(layout))
+        masks = gen_segmentation_mask(layout)
+
     rect_graphs, wall_runs, doors, sep_mask = assemble_plan(layout, masks, scale)
 
     # Sort the graphs back in the original order
