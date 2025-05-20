@@ -55,7 +55,7 @@ for i, graph in enumerate(premade_graphs):
     sig = canonical_graph_signature(graph)
     signature_to_graph[sig] = graph
 
-lsh = MinHashLSH(threshold=0.4, num_perm=NUM_PERMS)
+lsh = MinHashLSH(threshold=0.6, num_perm=NUM_PERMS)
 
 graph_index = []  # Keep for lookup
 
@@ -71,14 +71,19 @@ def find_closest_graph(query):
         return signature_to_graph[sig]  # 🎯 Exact match
 
     query_mh = minhash_for_graph(query)
-    candidates = lsh.query(query_mh)
+    cids = lsh.query(query_mh) or []
+
+    candidates = list(filter(
+        lambda g: len(g.node_types) == len(query.node_types),
+        (graph_index[int(cid.split('_')[1])] for cid in cids),
+    ))
 
     if not candidates:
         return None  # No match found
 
     # Rerank candidates using full similarity
     best_graph = max(
-        (graph_index[int(cid.split('_')[1])] for cid in candidates),
+        candidates,
         key=lambda g: graph_similarity(query, g)
     )
     return best_graph
